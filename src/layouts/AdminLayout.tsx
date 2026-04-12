@@ -8,7 +8,9 @@ const AdminLayout = () => {
   const { user, isLoading } = useAuth();
   const { collapsed, toggle } = useSidebarCollapse();
 
-  if (isLoading) {
+  // Jika isLoading DAN tidak ada user sama sekali, baru tampil spinner
+  // Jika ada user dari cache, langsung render konten (background verifikasi berjalan)
+  if (isLoading && !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
