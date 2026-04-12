@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebConfig } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -55,7 +55,10 @@ const WhatsAppReport = () => {
 
   const { data: waConfig, isLoading: isConfigLoading } = useQuery({
     queryKey: ["web-config"],
-    queryFn: () => fetch("/api/web-config", { credentials: "include" }).then(r => r.json()),
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: attendanceSettings = [] } = useQuery({

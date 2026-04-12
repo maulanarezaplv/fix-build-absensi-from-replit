@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebConfig } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,14 @@ const WebConfig = () => {
     queryKey: ["google-status"],
     queryFn: () => fetch("/api/backup/google-status", { credentials: "include" }).then(r => r.json()),
     retry: false,
+  });
+
+  const { data: webConfig } = useQuery<any>({
+    queryKey: ["web-config"],
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {
@@ -150,7 +158,7 @@ const WebConfig = () => {
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["web-config"] });
       await qc.cancelQueries({ queryKey: ["public-web-config"] });
-      const prev = qc.getQueryData(["web-config"]);
+      const prev = qc.getQueryData<any>(["web-config"]) ?? {};
       const validBgs = currentBgList.filter(u => u.trim() !== "");
       const optimistic = {
         ...prev,

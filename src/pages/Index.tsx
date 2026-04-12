@@ -10,6 +10,7 @@ import { GraduationCap, Send, Clock, Stethoscope, ShieldCheck, AlertTriangle, Ch
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { convertGDriveLink } from "@/lib/gdrive";
+import { getWebConfig } from "@/lib/queryClient";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +36,10 @@ const Index = () => {
 
   const { data: webConfig } = useQuery({
     queryKey: ["public-web-config"],
-    queryFn: () => fetch("/api/web-config").then(r => r.json()),
-    staleTime: 5 * 60_000,
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const logoUrl = webConfig?.logo_url ? convertGDriveLink(webConfig.logo_url) : null;

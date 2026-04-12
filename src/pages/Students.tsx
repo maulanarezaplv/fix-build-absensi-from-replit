@@ -15,6 +15,7 @@ import { Plus, Pencil, Trash2, Users, Search, Printer, Download, Info, ImagePlus
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { convertGDriveLink } from "@/lib/gdrive";
+import { getWebConfig } from "@/lib/queryClient";
 
 const Students = () => {
   useRealtimeSubscription("students", [["students"]]);
@@ -63,7 +64,10 @@ const Students = () => {
 
   const { data: webConfig } = useQuery({
     queryKey: ["public-web-config"],
-    queryFn: () => fetch("/api/web-config").then(r => r.json()),
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {
