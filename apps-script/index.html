@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root { --bg: #0f172a; --card: #ffffff; --text: #0f172a; --muted: #64748b; --primary: #4f46e5; --border: #e2e8f0; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(180deg, #e2e8f0, #cbd5e1); color: var(--text); }
+      .wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+      .card { width: 100%; max-width: 420px; background: var(--card); border-radius: 20px; box-shadow: 0 20px 40px rgba(15,23,42,.18); overflow: hidden; }
+      .head { padding: 24px 20px 16px; text-align: center; border-bottom: 1px solid var(--border); }
+      .logo { width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 12px; background: #e2e8f0; display: grid; place-items: center; font-size: 28px; }
+      h1 { margin: 0; font-size: 22px; letter-spacing: 2px; }
+      .sub { margin-top: 6px; color: var(--muted); font-size: 13px; }
+      .content { padding: 20px; }
+      .row { display: grid; gap: 10px; margin-bottom: 12px; }
+      label { font-size: 13px; font-weight: 700; }
+      input, select, textarea, button { width: 100%; border-radius: 12px; border: 1px solid var(--border); padding: 12px 14px; font-size: 14px; }
+      button { background: var(--primary); color: #fff; border: none; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: .7; cursor: not-allowed; }
+      .grid { display: grid; gap: 12px; }
+      .small { font-size: 12px; color: var(--muted); }
+      .status { margin-top: 12px; padding: 12px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--border); font-size: 13px; }
+      @media (max-width: 480px) { .card { border-radius: 16px; } .content { padding: 16px; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="head">
+          <div class="logo">🎓</div>
+          <h1 id="appTitle">E-ABSENSI</h1>
+          <div class="sub" id="appSub">Sistem Absensi Sekolah</div>
+        </div>
+        <div class="content">
+          <div class="grid">
+            <div class="row">
+              <label>Sekolah</label>
+              <input id="schoolName" placeholder="Nama sekolah">
+            </div>
+            <div class="row">
+              <label>Kelas</label>
+              <select id="classSelect"></select>
+            </div>
+            <div class="row">
+              <label>NIS / Nama Siswa</label>
+              <input id="studentInput" placeholder="Masukkan NIS atau nama">
+            </div>
+            <div class="row">
+              <label>Status</label>
+              <select id="statusSelect">
+                <option value="hadir">Hadir</option>
+                <option value="izin">Izin</option>
+                <option value="sakit">Sakit</option>
+                <option value="alpa">Alpa</option>
+              </select>
+            </div>
+            <div class="row">
+              <label>Catatan</label>
+              <textarea id="notesInput" rows="3" placeholder="Opsional"></textarea>
+            </div>
+            <button id="submitBtn" onclick="submitAttendance()">Simpan Absensi</button>
+            <div class="status" id="statusBox">Siap digunakan di HP dan komputer.</div>
+            <div class="small">Data disimpan ke Spreadsheet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      function setStatus(msg) {
+        document.getElementById("statusBox").textContent = msg;
+      }
+
+      function loadData() {
+        google.script.run.withSuccessHandler((data) => {
+          document.getElementById("appTitle").textContent = data.config.app_title || "E-ABSENSI";
+          document.getElementById("appSub").textContent = data.config.app_subtitle || "Sistem Absensi Sekolah";
+          document.getElementById("schoolName").value = data.config.school_name || "";
+          const select = document.getElementById("classSelect");
+          select.innerHTML = '<option value="">Pilih kelas</option>';
+          (data.classes || []).forEach((c) => {
+            const opt = document.createElement("option");
+            opt.value = c.id;
+            opt.textContent = c.name;
+            select.appendChild(opt);
+          });
+          setStatus("Data berhasil dimuat.");
+        }).getPublicData();
+      }
+
+      function submitAttendance() {
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = true;
+        setStatus("Menyimpan...");
+        const payload = {
+          classId: document.getElementById("classSelect").value,
+          studentId: document.getElementById("studentInput").value.trim(),
+          status: document.getElementById("statusSelect").value,
+          notes: document.getElementById("notesInput").value.trim(),
+          date: new Date().toISOString().slice(0, 10),
+        };
+        google.script.run
+          .withSuccessHandler((res) => {
+            btn.disabled = false;
+            setStatus("Tersimpan dengan ID: " + res.id);
+            document.getElementById("studentInput").value = "";
+            document.getElementById("notesInput").value = "";
+          })
+          .withFailureHandler((err) => {
+            btn.disabled = false;
+            setStatus("Gagal: " + (err && err.message ? err.message : "unknown"));
+          })
+          .saveAttendance(payload);
+      }
+
+      loadData();
+    </script>
+  </body>
+</html>
