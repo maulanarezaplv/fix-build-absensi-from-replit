@@ -95,7 +95,10 @@ const WebConfig = () => {
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["web-config"],
-    queryFn: () => fetch("/api/web-config", { credentials: "include" }).then(r => r.json()),
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const [autoBackupEnabled, setAutoBackupEnabled] = useState<boolean | null>(null);
