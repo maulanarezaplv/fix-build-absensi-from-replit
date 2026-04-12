@@ -89,8 +89,17 @@ if (isDev) {
   });
 }
 
-await storage.seedDefaults();
-startScheduler();
+try {
+  await storage.seedDefaults();
+} catch (error) {
+  console.error("seedDefaults failed", error);
+}
+
+try {
+  startScheduler();
+} catch (error) {
+  console.error("startScheduler failed", error);
+}
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
