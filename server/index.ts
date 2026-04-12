@@ -32,7 +32,7 @@ app.use(
 // ---- Security: Rate limiting ----
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Terlalu banyak permintaan, coba lagi nanti." },
