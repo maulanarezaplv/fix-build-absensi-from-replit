@@ -12,6 +12,11 @@ export default defineConfig({
   },
   server: {
     allowedHosts: true,
+    // Cegah browser menyimpan cache chunk Vite agar tidak terjadi
+    // blank page setelah server restart (stale chunk issue)
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    },
   },
   build: {
     rollupOptions: {

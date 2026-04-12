@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import FaviconSync from "@/components/FaviconSync";
 import { queryClient } from "@/lib/queryClient";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -44,13 +45,15 @@ const App = () => (
               <Route path="/login" element={<Login />} />
             </Route>
 
-            {/* Halaman admin: lazy-loaded sebagai satu chunk terpisah */}
+            {/* Halaman admin: lazy-loaded, ChunkErrorBoundary auto-reload jika chunk stale */}
             <Route
               path="/admin/*"
               element={
-                <Suspense fallback={<PanelLoader />}>
-                  <AdminRoutes />
-                </Suspense>
+                <ChunkErrorBoundary>
+                  <Suspense fallback={<PanelLoader />}>
+                    <AdminRoutes />
+                  </Suspense>
+                </ChunkErrorBoundary>
               }
             />
 
