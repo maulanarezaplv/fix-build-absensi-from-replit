@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,11 @@ const Login = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
+
+  // Prefetch admin chunk saat halaman login dimuat agar navigasi ke /admin instan
+  useEffect(() => {
+    import("@/routes/AdminRoutes").catch(() => {});
+  }, []);
 
   const logoUrl = webConfig?.logo_url ? convertGDriveLink(webConfig.logo_url) : null;
 

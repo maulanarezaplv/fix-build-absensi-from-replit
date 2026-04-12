@@ -426,7 +426,7 @@ export const storage = {
   },
 
   async createUser(data: { username: string; password: string; name: string; role: string }) {
-    const passwordHash = await bcrypt.hash(data.password, 10);
+    const passwordHash = await bcrypt.hash(data.password, 8);
     const [p] = await db.insert(profiles).values({
       username: data.username.trim().toLowerCase(),
       name: data.name,
@@ -445,7 +445,7 @@ export const storage = {
     if (data.username !== undefined) updateData.username = data.username;
     if (data.password !== undefined) {
       updateData.password = data.password || null;
-      if (data.password) updateData.passwordHash = await bcrypt.hash(data.password, 10);
+      if (data.password) updateData.passwordHash = await bcrypt.hash(data.password, 8);
     }
     updateData.updatedAt = new Date();
     await db.update(profiles).set(updateData).where(eq(profiles.id, id));
@@ -587,7 +587,7 @@ export const storage = {
 
     const [existingAdmin] = await db.select().from(profiles).limit(1);
     if (!existingAdmin) {
-      const hash = await bcrypt.hash("admin123", 10);
+      const hash = await bcrypt.hash("admin123", 8);
       const [admin] = await db.insert(profiles).values({
         username: "admin",
         passwordHash: hash,

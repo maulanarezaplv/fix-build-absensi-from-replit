@@ -50,10 +50,18 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
       const user = await storage.getUserByUsername(username.trim());
       if (!user) return res.status(401).json({ error: "Username atau password salah" });
 
-      const valid = await storage.verifyPassword(password, user.passwordHash);
+      // verifyPassword (bcrypt) dan getUserRoles dijalankan paralel
+      const [valid, roles] = await Promise.all([
+        storage.verifyPassword(password, user.passwordHash),
+        storage.getUserRoles(user.id),
+      ]);
       if (!valid) return res.status(401).json({ error: "Username atau password salah" });
 
-      const roles = await storage.getUserRoles(user.id);
+      // Lazy rehash: jika hash masih pakai cost tinggi (>8), upgrade ke cost 8 di background
+      if (user.passwordHash && !/\$2.\$08\$/.test(user.passwordHash)) {
+        storage.updateUser(user.id, { password }).catch(() => {});
+      }
+
       req.session.userId = user.id;
       req.session.username = user.username;
       req.session.name = user.name;
