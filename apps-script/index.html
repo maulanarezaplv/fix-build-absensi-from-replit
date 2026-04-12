@@ -26,7 +26,7 @@ body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;overflow-x:
 .nav-item.active{background:rgba(255,255,255,.18);color:#fff;font-weight:700}
 .nav-item svg{width:16px;height:16px;flex-shrink:0}
 .nav-group{padding:8px 10px 4px;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase}
-.card{background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(76,29,149,.14);padding:20px;border:1px solid rgba(124,58,237,.08)}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);padding:20px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
 .btn-primary{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff}
 .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
@@ -61,7 +61,7 @@ tr:hover td{background:#f8fafc}
 .toast.error{background:#ef4444;color:#fff}
 .toast.info{background:#6366f1;color:#fff}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:#fff;border-radius:24px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.modal{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)}
 .modal h2{font-size:17px;font-weight:800;margin-bottom:16px}
 .form-row{margin-bottom:14px}
 .spinner{border:3px solid #e2e8f0;border-top:3px solid #7c3aed;border-radius:50%;width:28px;height:28px;animation:spin 1s linear infinite;margin:auto}
@@ -143,13 +143,13 @@ textarea.input{resize:vertical;min-height:80px}
 <!-- PUBLIC FORM -->
 <div id="page-public" style="display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#e0e7ff,#f0fdf4)">
   <div style="width:100%;max-width:420px;padding-top:20px">
-    <div class="card" style="border-radius:28px;overflow:hidden;padding:0;box-shadow:0 28px 70px rgba(76,29,149,.24)">
-      <div style="padding:28px 22px 20px;text-align:center;border-bottom:1px solid #e2e8f0;background:linear-gradient(180deg,#ffffff 0%,#faf5ff 100%)">
-        <div id="pubLogoWrap" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#ede9fe,#dbeafe);display:grid;place-items:center;font-size:34px;margin:0 auto 12px;box-shadow:0 10px 24px rgba(124,58,237,.18)">🎓</div>
-        <h1 id="pubTitle" style="font-family:'Cinzel Decorative',serif;font-size:22px;font-weight:900;letter-spacing:3px;color:#0f172a">E-ABSENSI</h1>
-        <p id="pubSub" style="font-size:12px;color:#64748b;margin-top:6px;letter-spacing:.5px">Sistem Absensi Sekolah</p>
+    <div class="card" style="border-radius:20px;overflow:hidden;padding:0;box-shadow:0 20px 48px rgba(0,0,0,.18)">
+      <div style="padding:24px 20px 16px;text-align:center;border-bottom:1px solid #e2e8f0">
+        <div id="pubLogoWrap" style="width:72px;height:72px;border-radius:50%;background:#e0e7ff;display:grid;place-items:center;font-size:32px;margin:0 auto 12px">🎓</div>
+        <h1 id="pubTitle" style="font-family:'Cinzel Decorative',serif;font-size:20px;font-weight:900;letter-spacing:3px;color:#0f172a">E-ABSENSI</h1>
+        <p id="pubSub" style="font-size:12px;color:#64748b;margin-top:4px;letter-spacing:.5px">Sistem Absensi Sekolah</p>
       </div>
-      <div id="pubContent" style="padding:20px"><div style="text-align:center;padding:24px 20px"><div class="spinner"></div></div></div>
+      <div id="pubContent" style="padding:20px"><div style="text-align:center;padding:20px"><div class="spinner"></div></div></div>
     </div>
     <div style="text-align:center;margin-top:16px">
       <a onclick="showPage('login')" style="font-size:12px;color:#7c3aed;cursor:pointer;font-weight:600">🔐 Login sebagai Admin / Guru</a>
@@ -160,11 +160,11 @@ textarea.input{resize:vertical;min-height:80px}
 <!-- LOGIN -->
 <div id="page-login" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);padding:20px">
   <div style="width:100%;max-width:380px">
-    <div class="card" style="border-radius:28px;padding:34px;box-shadow:0 28px 70px rgba(15,23,42,.28)">
+    <div class="card" style="border-radius:20px;padding:32px">
       <div style="text-align:center;margin-bottom:24px">
-        <div style="width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;background:linear-gradient(135deg,#ede9fe,#dbeafe);font-size:34px;box-shadow:0 10px 24px rgba(124,58,237,.18)">🔐</div>
-        <h1 style="font-size:22px;font-weight:800;color:#0f172a">Login E-Absensi</h1>
-        <p style="font-size:13px;color:#64748b;margin-top:6px">Masukkan kredensial Anda</p>
+        <div style="font-size:40px;margin-bottom:12px">🔐</div>
+        <h1 style="font-size:20px;font-weight:800;color:#0f172a">Login E-Absensi</h1>
+        <p style="font-size:13px;color:#64748b;margin-top:4px">Masukkan kredensial Anda</p>
       </div>
       <div class="form-row"><label class="label">Username</label><input id="loginUser" class="input" placeholder="Username" type="text"></div>
       <div class="form-row"><label class="label">Password</label><input id="loginPass" class="input" placeholder="Password" type="password" onkeydown="if(event.key==='Enter')doLogin()"></div>
@@ -692,22 +692,18 @@ var PD={config:{},classes:[],holidays:[],settings:[],students:[]};
 
 function loadPublicPage() {
   showPage('public');
-  var c=document.getElementById('pubContent');
-  if(c) c.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
   gsr('getPublicData').then(function(data) {
     PD.config=data.config||{}; PD.classes=data.classes||[]; PD.holidays=data.holidays||[]; PD.settings=data.settings||[];
-    var sideTitle=document.getElementById('sideTitle'), sideSub=document.getElementById('sideSub'), pubTitle=document.getElementById('pubTitle'), pubSub=document.getElementById('pubSub');
-    if(sideTitle) sideTitle.textContent=PD.config.app_title||'E-ABSENSI';
-    if(sideSub) sideSub.textContent=PD.config.app_subtitle||'Sistem Absensi';
-    if(pubTitle) pubTitle.textContent=PD.config.app_title||'E-ABSENSI';
-    if(pubSub) pubSub.textContent=PD.config.app_subtitle||'Sistem Absensi Sekolah';
+    document.getElementById('sideTitle').textContent=PD.config.app_title||'E-ABSENSI';
+    document.getElementById('sideSub').textContent=PD.config.app_subtitle||'Sistem Absensi';
+    document.getElementById('pubTitle').textContent=PD.config.app_title||'E-ABSENSI';
+    document.getElementById('pubSub').textContent=PD.config.app_subtitle||'Sistem Absensi Sekolah';
     if(PD.config.logo_url){
       var src=gdriveUrl(PD.config.logo_url);
-      var wrap=document.getElementById('pubLogoWrap');
-      if(wrap) wrap.innerHTML='<img src="'+src+'" style="width:68px;height:68px;object-fit:contain;border-radius:50%" onerror="this.parentNode.innerHTML=\'🎓\'">';
+      document.getElementById('pubLogoWrap').innerHTML='<img src="'+src+'" style="width:68px;height:68px;object-fit:contain;border-radius:50%" onerror="this.parentNode.innerHTML=\'🎓\'">';
     }
     renderPublicForm();
-  }).catch(function(e){ if(c) c.innerHTML='<div style="text-align:center;padding:16px"><div style="font-size:44px;margin-bottom:10px">⚠️</div><p style="color:#ef4444;font-weight:700">Gagal memuat data</p><p style="color:#64748b;font-size:12px;margin-top:6px">'+esc(e.message||e)+'</p><button class="btn btn-primary" style="margin-top:14px" onclick="loadPublicPage()">Coba Lagi</button></div>'; });
+  }).catch(function(e){ document.getElementById('pubContent').innerHTML='<p style="color:#ef4444;text-align:center">Gagal memuat: '+(e.message||e)+'</p>'; });
 }
 
 function renderPublicForm() {
@@ -1119,11 +1115,10 @@ function deleteUser(id,name){openConfirm('Hapus User','Yakin hapus "'+name+'"?',
 // ====================================================================
 function loadWebConfig(){
   gsr('getWebConfig').then(function(cfg){
-    if(!cfg){ return; }
     document.getElementById('cfgTitle').value=cfg.app_title||'';document.getElementById('cfgSubtitle').value=cfg.app_subtitle||'';document.getElementById('cfgSchool').value=cfg.school_name||'';document.getElementById('cfgCity').value=cfg.school_city||'';
     document.getElementById('cfgLogo').value=cfg.logo_url||'';document.getElementById('cfgBg1').value=cfg.bg_url_1||'';document.getElementById('cfgBg2').value=cfg.bg_url_2||'';document.getElementById('cfgBg3').value=cfg.bg_url_3||'';document.getElementById('cfgBg4').value=cfg.bg_url_4||'';
     document.getElementById('cfgWaToken').value=cfg.wa_token||'';document.getElementById('cfgWaTarget').value=cfg.wa_target_number||'';document.getElementById('cfgWaProvider').value=cfg.wa_provider||'fonnte';document.getElementById('cfgWaAuto').checked=!!cfg.wa_auto_send_enabled;document.getElementById('cfgWaTime').value=cfg.wa_auto_send_time||'14:00';document.getElementById('cfgWaScope').value=cfg.wa_auto_send_scope||'all';
-  }).catch(function(e){ showToast('Gagal memuat konfigurasi: '+(e.message||e),'error'); });
+  });
 }
 function saveWebConfig(){
   var data={app_title:document.getElementById('cfgTitle').value.trim(),app_subtitle:document.getElementById('cfgSubtitle').value.trim(),school_name:document.getElementById('cfgSchool').value.trim(),school_city:document.getElementById('cfgCity').value.trim(),logo_url:document.getElementById('cfgLogo').value.trim(),bg_url_1:document.getElementById('cfgBg1').value.trim(),bg_url_2:document.getElementById('cfgBg2').value.trim(),bg_url_3:document.getElementById('cfgBg3').value.trim(),bg_url_4:document.getElementById('cfgBg4').value.trim()};

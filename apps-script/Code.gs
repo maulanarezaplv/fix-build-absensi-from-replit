@@ -34,12 +34,6 @@ function _sh(name) {
   return s;
 }
 
-function _ensureSheet(name, headers) {
-  var s = _sh(name);
-  if (s.getLastRow() === 0) s.appendRow(headers);
-  return s;
-}
-
 function _rows(name) {
   var s = _sh(name);
   var n = s.getLastRow();
@@ -73,11 +67,12 @@ function setupSheets() {
     AttendanceSettings: ["id","day_of_week","check_in_start","check_in_end","check_out_start","check_out_end","enabled"],
     Holidays:           ["id","name","start_date","end_date"],
     GuruPiket:          ["id","user_id","day_of_week"],
-    UserPasswords:      ["id","user_id","username","name","role","password_plain","password_hash"],
     Config:             ["key","value"],
   };
   Object.keys(defs).forEach(function(name) {
-    _ensureSheet(name, defs[name]);
+    var headers = defs[name];
+    var s = _sh(name);
+    if (s.getLastRow() === 0) s.appendRow(headers);
   });
   _seedDefaults();
   return { ok: true, message: "Setup selesai. Akun default: admin / admin123" };
@@ -87,9 +82,7 @@ function _seedDefaults() {
   var profiles = _rows("Profiles");
   var adminExists = profiles.some(function(r) { return r[1] === "admin"; });
   if (!adminExists) {
-    _sh("Profiles").appendRow([_uuid(), "admin", "Administrator", "admin123", "admin"]);
-    _ensureSheet("UserPasswords", ["id","user_id","username","name","role","password_plain","password_hash"]);
-    _sh("UserPasswords").appendRow([_uuid(), "admin", "admin", "Administrator", "admin", "admin123", _hashPwd("admin123")]);
+    _sh("Profiles").appendRow([_uuid(), "admin", "Administrator", _hashPwd("admin123"), "admin"]);
   }
 
   var settings = _rows("AttendanceSettings");
@@ -137,22 +130,6 @@ function _hashPwd(pwd) {
   }
 }
 
-function _syncUserPasswordRow(userId, username, name, role, password) {
-  var s = _ensureSheet("UserPasswords", ["id","user_id","username","name","role","password_plain","password_hash"]);
-  var rows = s.getDataRange().getValues();
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][1] === userId) {
-      s.getRange(i+1, 3).setValue(username);
-      s.getRange(i+1, 4).setValue(name);
-      s.getRange(i+1, 5).setValue(role);
-      s.getRange(i+1, 6).setValue(password);
-      s.getRange(i+1, 7).setValue(_hashPwd(password));
-      return;
-    }
-  }
-  s.appendRow([_uuid(), userId, username, name, role, password, _hashPwd(password)]);
-}
-
 function _getSession(token) {
   if (!token) return null;
   try {
@@ -182,10 +159,7 @@ function login(username, password) {
       if (rows[i][1] === username.trim()) { row = rows[i]; break; }
     }
     if (!row) return { ok: false, error: "Username atau password salah" };
-    var plainPassword = String(row[3] || "");
-    var hashedPassword = _hashPwd(password);
-    var passwordMatches = (password === plainPassword) || (hashedPassword === plainPassword);
-    if (!passwordMatches) return { ok: false, error: "Username atau password salah" };
+    if (_hashPwd(password) !== row[3]) return { ok: false, error: "Username atau password salah" };
     var token = _uuid();
     var sess  = { userId: row[0], username: row[1], name: row[2], role: row[4] };
     CacheService.getScriptCache().put("sess_" + token, JSON.stringify(sess), SESSION_TTL);
@@ -622,7 +596,7 @@ function getUsers(token) {
   try {
     _requireAuth(token);
     return _rows("Profiles").filter(function(r){ return r[0]; }).map(function(r) {
-      return { id: r[0], username: r[1], name: r[2], password: r[3] || "", role: r[4] };
+      return { id: r[0], username: r[1], name: r[2], role: r[4] };
     });
   } catch(e) { return []; }
 }
@@ -639,13 +613,8 @@ function createUser(token, data) {
     var existing = _rows("Profiles").filter(function(r){ return r[1] === data.username.trim(); })[0];
     if (existing) throw new Error("Username sudah digunakan");
     var id = _uuid();
-    var username = data.username.trim();
-    var name = data.name.trim();
-    var password = String(data.password);
-    var role = data.role || "guru";
-    _sh("Profiles").appendRow([id, username, name, password, role]);
-    _syncUserPasswordRow(id, username, name, role, password);
-    return { ok: true, id: id, username: username, name: name, role: role, password: password };
+    _sh("Profiles").appendRow([id, data.username.trim(), data.name.trim(), _hashPwd(data.password), data.role||"guru"]);
+    return { ok: true, id: id, username: data.username, name: data.name, role: data.role||"guru" };
   } catch(e) { return { ok: false, error: e.message }; }
 }
 
@@ -657,10 +626,8 @@ function updateUser(token, id, data) {
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0] === id) {
         if (data.name)     s.getRange(i+1,3).setValue(data.name);
-        if (data.password) s.getRange(i+1,4).setValue(data.password);
+        if (data.password) s.getRange(i+1,4).setValue(_hashPwd(data.password));
         if (data.role)     s.getRange(i+1,5).setValue(data.role);
-        var currentUsername = rows[i][1];
-        _syncUserPasswordRow(id, currentUsername, data.name || rows[i][2], data.role || rows[i][4], data.password || rows[i][3] || "");
         return { ok: true };
       }
     }

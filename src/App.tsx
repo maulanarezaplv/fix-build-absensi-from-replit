@@ -13,9 +13,7 @@ import Login from "./pages/Login";
 import PublicLayout from "./layouts/PublicLayout";
 import NotFound from "./pages/NotFound";
 
-const AdminRoutes = lazy(() =>
-  Promise.resolve().then(() => import("./routes/AdminRoutes"))
-);
+const AdminRoutes = lazy(() => import("./routes/AdminRoutes"));
 
 const PanelLoader = () => {
   const { isAdmin } = useAuth();
