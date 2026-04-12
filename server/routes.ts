@@ -86,10 +86,69 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
       const cached = _get("web-config");
       if (cached) return res.json(cached);
       const config = await storage.getWebConfig();
+      if (!config) {
+        const fallback = {
+          id: "default",
+          app_title: "E-ABSENSI",
+          app_subtitle: "Sistem Absensi Sekolah",
+          logo_url: null,
+          bg_url_1: null,
+          bg_url_2: null,
+          bg_url_3: null,
+          bg_url_4: null,
+          bg_images: null,
+          school_start_date: null,
+          wa_provider: "fonnte",
+          wa_token: null,
+          wa_target_number: null,
+          wa_auto_send_enabled: false,
+          wa_auto_send_time: "14:00",
+          wa_auto_send_scope: "all",
+          wa_auto_sent_date: null,
+          google_refresh_token: null,
+          google_connected_email: null,
+          google_drive_folder_id: null,
+          gdrive_auto_backup_enabled: false,
+          gdrive_auto_backup_time: "23:00",
+          gdrive_auto_backup_schedule: "monthly",
+          gdrive_auto_backed_up_date: null,
+          school_city: null,
+          updated_at: null,
+        };
+        _set("web-config", fallback, 2 * 60_000);
+        return res.json(fallback);
+      }
       _set("web-config", config, 2 * 60_000);
       res.json(config);
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      res.json({
+        id: "default",
+        app_title: "E-ABSENSI",
+        app_subtitle: "Sistem Absensi Sekolah",
+        logo_url: null,
+        bg_url_1: null,
+        bg_url_2: null,
+        bg_url_3: null,
+        bg_url_4: null,
+        bg_images: null,
+        school_start_date: null,
+        wa_provider: "fonnte",
+        wa_token: null,
+        wa_target_number: null,
+        wa_auto_send_enabled: false,
+        wa_auto_send_time: "14:00",
+        wa_auto_send_scope: "all",
+        wa_auto_sent_date: null,
+        google_refresh_token: null,
+        google_connected_email: null,
+        google_drive_folder_id: null,
+        gdrive_auto_backup_enabled: false,
+        gdrive_auto_backup_time: "23:00",
+        gdrive_auto_backup_schedule: "monthly",
+        gdrive_auto_backed_up_date: null,
+        school_city: null,
+        updated_at: null,
+      });
     }
   });
 
