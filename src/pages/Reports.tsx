@@ -95,7 +95,10 @@ const Reports = () => {
 
   const { data: webConfig } = useQuery<any>({
     queryKey: ["web-config"],
-    queryFn: () => fetch("/api/web-config", { credentials: "include" }).then(r => r.json()),
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
   const schoolStartDate: string | null = webConfig?.school_start_date || null;
 

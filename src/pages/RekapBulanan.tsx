@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebConfig } from "@/lib/queryClient";
 import jsPDF from "jspdf";
 
 const MONTHS = [
@@ -165,7 +165,10 @@ const RekapBulanan = () => {
 
   const { data: webConfig } = useQuery<any>({
     queryKey: ["web-config"],
-    queryFn: () => fetch("/api/web-config", { credentials: "include" }).then(r => r.json()),
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
   const schoolStartDate: string | null = webConfig?.school_start_date || null;
 
