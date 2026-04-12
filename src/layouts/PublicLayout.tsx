@@ -15,8 +15,10 @@ const PublicLayout = () => {
 
   const { data: webConfig } = useQuery({
     queryKey: ["public-web-config"],
-    queryFn: () => fetch("/api/web-config").then(r => r.json()),
-    staleTime: 5 * 60_000,
+    queryFn: () => fetch("/api/web-config", { credentials: "include" }).then(r => r.json()),
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const bgImages = useMemo(() => {
