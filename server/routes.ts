@@ -78,14 +78,14 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
     res.json({ ok: true });
   });
 
-  app.get("/api/auth/me", async (req, res) => {
+  app.get("/api/auth/me", (req, res) => {
     if (!req.session.userId) return res.json(null);
-    try {
-      const roles = await storage.getUserRoles(req.session.userId);
-      res.json({ id: req.session.userId, username: req.session.username, name: req.session.name, roles });
-    } catch {
-      res.json(null);
-    }
+    res.json({
+      id: req.session.userId,
+      username: req.session.username,
+      name: req.session.name,
+      roles: req.session.roles || [],
+    });
   });
 
   // ---- Web Config ----

@@ -59,10 +59,16 @@ if (!sessionSecret) {
 }
 
 app.use(session({
-  store: new PgStore({ pool, createTableIfMissing: true }),
+  store: new PgStore({
+    pool,
+    createTableIfMissing: true,
+    disableTouch: true,           // jangan update session di DB setiap request (hemat DB write)
+    pruneSessionInterval: 3600,   // bersihkan session kadaluarsa setiap 1 jam
+  }),
   secret: sessionSecret || "dev-secret-do-not-use-in-prod",
   resave: false,
   saveUninitialized: false,
+  rolling: false,
   cookie: {
     secure: !isDev,
     httpOnly: true,
