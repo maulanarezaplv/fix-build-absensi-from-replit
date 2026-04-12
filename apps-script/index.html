@@ -692,18 +692,22 @@ var PD={config:{},classes:[],holidays:[],settings:[],students:[]};
 
 function loadPublicPage() {
   showPage('public');
+  var c=document.getElementById('pubContent');
+  if(c) c.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
   gsr('getPublicData').then(function(data) {
     PD.config=data.config||{}; PD.classes=data.classes||[]; PD.holidays=data.holidays||[]; PD.settings=data.settings||[];
-    document.getElementById('sideTitle').textContent=PD.config.app_title||'E-ABSENSI';
-    document.getElementById('sideSub').textContent=PD.config.app_subtitle||'Sistem Absensi';
-    document.getElementById('pubTitle').textContent=PD.config.app_title||'E-ABSENSI';
-    document.getElementById('pubSub').textContent=PD.config.app_subtitle||'Sistem Absensi Sekolah';
+    var sideTitle=document.getElementById('sideTitle'), sideSub=document.getElementById('sideSub'), pubTitle=document.getElementById('pubTitle'), pubSub=document.getElementById('pubSub');
+    if(sideTitle) sideTitle.textContent=PD.config.app_title||'E-ABSENSI';
+    if(sideSub) sideSub.textContent=PD.config.app_subtitle||'Sistem Absensi';
+    if(pubTitle) pubTitle.textContent=PD.config.app_title||'E-ABSENSI';
+    if(pubSub) pubSub.textContent=PD.config.app_subtitle||'Sistem Absensi Sekolah';
     if(PD.config.logo_url){
       var src=gdriveUrl(PD.config.logo_url);
-      document.getElementById('pubLogoWrap').innerHTML='<img src="'+src+'" style="width:68px;height:68px;object-fit:contain;border-radius:50%" onerror="this.parentNode.innerHTML=\'🎓\'">';
+      var wrap=document.getElementById('pubLogoWrap');
+      if(wrap) wrap.innerHTML='<img src="'+src+'" style="width:68px;height:68px;object-fit:contain;border-radius:50%" onerror="this.parentNode.innerHTML=\'🎓\'">';
     }
     renderPublicForm();
-  }).catch(function(e){ document.getElementById('pubContent').innerHTML='<div style="text-align:center;padding:16px"><div style="font-size:44px;margin-bottom:10px">⚠️</div><p style="color:#ef4444;font-weight:700">Gagal memuat data</p><p style="color:#64748b;font-size:12px;margin-top:6px">'+esc(e.message||e)+'</p><button class="btn btn-primary" style="margin-top:14px" onclick="loadPublicPage()">Coba Lagi</button></div>'; });
+  }).catch(function(e){ if(c) c.innerHTML='<div style="text-align:center;padding:16px"><div style="font-size:44px;margin-bottom:10px">⚠️</div><p style="color:#ef4444;font-weight:700">Gagal memuat data</p><p style="color:#64748b;font-size:12px;margin-top:6px">'+esc(e.message||e)+'</p><button class="btn btn-primary" style="margin-top:14px" onclick="loadPublicPage()">Coba Lagi</button></div>'; });
 }
 
 function renderPublicForm() {
@@ -1115,6 +1119,7 @@ function deleteUser(id,name){openConfirm('Hapus User','Yakin hapus "'+name+'"?',
 // ====================================================================
 function loadWebConfig(){
   gsr('getWebConfig').then(function(cfg){
+    if(!cfg){ return; }
     document.getElementById('cfgTitle').value=cfg.app_title||'';document.getElementById('cfgSubtitle').value=cfg.app_subtitle||'';document.getElementById('cfgSchool').value=cfg.school_name||'';document.getElementById('cfgCity').value=cfg.school_city||'';
     document.getElementById('cfgLogo').value=cfg.logo_url||'';document.getElementById('cfgBg1').value=cfg.bg_url_1||'';document.getElementById('cfgBg2').value=cfg.bg_url_2||'';document.getElementById('cfgBg3').value=cfg.bg_url_3||'';document.getElementById('cfgBg4').value=cfg.bg_url_4||'';
     document.getElementById('cfgWaToken').value=cfg.wa_token||'';document.getElementById('cfgWaTarget').value=cfg.wa_target_number||'';document.getElementById('cfgWaProvider').value=cfg.wa_provider||'fonnte';document.getElementById('cfgWaAuto').checked=!!cfg.wa_auto_send_enabled;document.getElementById('cfgWaTime').value=cfg.wa_auto_send_time||'14:00';document.getElementById('cfgWaScope').value=cfg.wa_auto_send_scope||'all';
