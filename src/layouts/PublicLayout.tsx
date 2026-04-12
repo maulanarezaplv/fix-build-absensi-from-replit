@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { convertGDriveLink } from "@/lib/gdrive";
+import { getWebConfig } from "@/lib/queryClient";
 import bgSchool1 from "@/assets/bg-school-1.jpg";
 import bgSchool2 from "@/assets/bg-school-2.jpg";
 
@@ -15,7 +16,7 @@ const PublicLayout = () => {
 
   const { data: webConfig } = useQuery({
     queryKey: ["public-web-config"],
-    queryFn: () => fetch("/api/web-config", { credentials: "include" }).then(r => r.json()),
+    queryFn: getWebConfig,
     staleTime: 30 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,

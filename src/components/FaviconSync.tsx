@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { convertGDriveLink } from "@/lib/gdrive";
+import { getWebConfig } from "@/lib/queryClient";
 
 const FaviconSync = () => {
   const { data: webConfig } = useQuery({
     queryKey: ["public-web-config"],
-    queryFn: () => fetch("/api/web-config").then(r => r.json()),
-    staleTime: 60_000,
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {

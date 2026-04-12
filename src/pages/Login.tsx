@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { User, Lock, Eye, EyeOff, ArrowLeft, GraduationCap, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { convertGDriveLink } from "@/lib/gdrive";
+import { getWebConfig } from "@/lib/queryClient";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -19,8 +20,10 @@ const Login = () => {
 
   const { data: webConfig } = useQuery({
     queryKey: ["public-web-config"],
-    queryFn: () => fetch("/api/web-config").then(r => r.json()),
-    staleTime: 5 * 60_000,
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const logoUrl = webConfig?.logo_url ? convertGDriveLink(webConfig.logo_url) : null;
