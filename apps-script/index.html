@@ -8,25 +8,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
-<script>
-tailwind.config = {
-  theme: { extend: { fontFamily: { cinzel: ['"Cinzel Decorative"','serif'] } } }
-}
-</script>
+<script>tailwind.config={theme:{extend:{fontFamily:{cinzel:['"Cinzel Decorative"','serif']}}}}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;overflow-x:hidden}
+body{font-family:'Inter',sans-serif;color:#0f172a;overflow-x:hidden}
 ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
-.sidebar{position:fixed;left:0;top:0;height:100vh;width:240px;background:linear-gradient(180deg,#1e1b4b 0%,#312e81 50%,#4c1d95 100%);z-index:50;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;transition:transform .3s}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
-.main{margin-left:240px;min-height:100vh;transition:margin .3s}
-@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.main{margin-left:0;padding-bottom:72px}}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;margin:1px 10px;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-decoration:none}
-.nav-item:hover{background:rgba(255,255,255,.12);color:#fff}
-.nav-item.active{background:rgba(255,255,255,.18);color:#fff;font-weight:700}
-.nav-item svg{width:16px;height:16px;flex-shrink:0}
-.nav-group{padding:8px 10px 4px;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase}
-.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);padding:20px}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:20px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
 .btn-primary{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff}
 .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
@@ -36,16 +23,16 @@ body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;overflow-x:
 .btn-sm{padding:7px 12px;font-size:12px;border-radius:8px}
 .btn-green{background:#10b981;color:#fff}.btn-green:hover{background:#059669}
 .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.badge-hadir{background:#dcfce7;color:#166534}
-.badge-izin{background:#dbeafe;color:#1e40af}
-.badge-sakit{background:#fef9c3;color:#854d0e}
-.badge-alpa{background:#fee2e2;color:#991b1b}
-.badge-pending{background:#fef3c7;color:#92400e}
-.badge-approved{background:#dcfce7;color:#166534}
-.badge-rejected{background:#fee2e2;color:#991b1b}
+.badge-hadir{background:#dcfce7;color:#166534}.badge-izin{background:#dbeafe;color:#1e40af}
+.badge-sakit{background:#fef9c3;color:#854d0e}.badge-alpa{background:#fee2e2;color:#991b1b}
+.badge-pending{background:#fef3c7;color:#92400e}.badge-approved{background:#dcfce7;color:#166534}.badge-rejected{background:#fee2e2;color:#991b1b}
 .input{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;background:#f8fafc;outline:none;transition:border-color .15s;color:#0f172a}
 .input:focus{border-color:#7c3aed;background:#fff}
 .label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:block}
+.select{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;background:#f8fafc;outline:none;cursor:pointer;color:#0f172a;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:20px;padding-right:36px}
+.select:focus{border-color:#7c3aed}
+textarea.input{resize:vertical;min-height:80px}
+.form-row{margin-bottom:14px}
 .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid #e2e8f0}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead{background:#f8fafc}
@@ -57,1168 +44,1529 @@ tr:hover td{background:#f8fafc}
 .stat-value{font-size:32px;font-weight:900;line-height:1}
 .toast{position:fixed;bottom:20px;right:20px;padding:14px 20px;border-radius:14px;font-size:13px;font-weight:600;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateX(120%);transition:transform .3s}
 .toast.show{transform:translateX(0)}
-.toast.success{background:#10b981;color:#fff}
-.toast.error{background:#ef4444;color:#fff}
-.toast.info{background:#6366f1;color:#fff}
+.toast.success{background:#10b981;color:#fff}.toast.error{background:#ef4444;color:#fff}.toast.info{background:#6366f1;color:#fff}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)}
-.modal h2{font-size:17px;font-weight:800;margin-bottom:16px}
-.form-row{margin-bottom:14px}
 .spinner{border:3px solid #e2e8f0;border-top:3px solid #7c3aed;border-radius:50%;width:28px;height:28px;animation:spin 1s linear infinite;margin:auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-.page{display:none;padding:20px;max-width:1200px;margin:0 auto}
-.page.flex-page{display:none;align-items:flex-start;justify-content:center;min-height:100vh;padding:20px}
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e2e8f0;z-index:50;padding:6px 0 env(safe-area-inset-bottom)}
-@media(max-width:768px){.bottom-nav{display:grid;grid-template-columns:repeat(5,1fr)}}
-.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;cursor:pointer;font-size:10px;color:#94a3b8;font-weight:500;text-align:center}
-.bnav-item.active{color:#7c3aed}
-.bnav-item svg{width:20px;height:20px}
-.select{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;background:#f8fafc;outline:none;cursor:pointer;color:#0f172a;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:20px;padding-right:36px}
-.select:focus{border-color:#7c3aed}
-textarea.input{resize:vertical;min-height:80px}
+.page{display:none;padding:24px;max-width:1200px;margin:0 auto}
 .page-header{margin-bottom:20px}
 .page-header h1{font-size:22px;font-weight:800;color:#0f172a}
 .page-header p{color:#64748b;font-size:13px;margin-top:4px}
+.tab-nav{display:flex;gap:4px;flex-wrap:wrap;padding:4px}
+.tab-btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#64748b;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{background:#f1f5f9;color:#374151}
+.tab-btn.active{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff}
+.tab-group-label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;padding:8px 14px 2px;display:flex;align-items:center}
 #html5-qrcode-button-camera-start,#html5-qrcode-button-camera-stop,#html5-qrcode-anchor-scan-type-change{display:none!important}
 </style>
 </head>
 <body>
 
-<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
-<!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
-  <div style="padding:20px 16px 12px;display:flex;align-items:center;gap:10px">
-    <div id="sideLogoWrap" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:18px;flex-shrink:0">🎓</div>
-    <div>
-      <div id="sideTitle" style="font-family:'Cinzel Decorative',serif;font-size:13px;color:#fff;font-weight:700;letter-spacing:1px">E-ABSENSI</div>
-      <div id="sideSub" style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px">Sistem Absensi</div>
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBox">
+    <h2 id="modalTitle" style="font-size:17px;font-weight:800;margin-bottom:16px"></h2>
+    <div id="modalBody"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary btn-sm" id="modalOk" onclick="">OK</button>
     </div>
   </div>
-  <div style="height:1px;background:rgba(255,255,255,.1);margin:0 16px"></div>
-  <nav id="navPublic" style="padding-top:8px">
-    <a class="nav-item" data-page="public"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Form Absensi</a>
-    <a class="nav-item" data-page="login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Login</a>
-  </nav>
-  <nav id="navAdmin" style="display:none">
-    <div class="nav-group">Menu Utama</div>
-    <a class="nav-item" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
-    <a class="nav-item" data-page="scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2M3 17v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2v-2M7 12h10"/></svg>Scan QR</a>
-    <a class="nav-item" data-page="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Data Absensi</a>
-    <a class="nav-item" data-page="validation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Validasi</a>
-    <a class="nav-item" data-page="rekap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Rekap Bulanan</a>
-    <a class="nav-item" data-page="whatsapp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Laporan WA</a>
-    <div class="nav-group" style="margin-top:8px">Data Master</div>
-    <a class="nav-item" data-page="classes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Kelola Kelas</a>
-    <a class="nav-item" data-page="students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Data Siswa</a>
-    <a class="nav-item" data-page="holidays"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Hari Libur</a>
-    <div class="nav-group" style="margin-top:8px">Pengaturan</div>
-    <a class="nav-item" data-page="att-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Jadwal Absensi</a>
-    <a class="nav-item" data-page="piket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Guru Piket</a>
-    <a class="nav-item" id="navUsers" data-page="users" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>Manajemen User</a>
-    <a class="nav-item" id="navConfig" data-page="webconfig" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Konfigurasi Web</a>
-    <a class="nav-item" id="navReset" data-page="reset" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Kelola &amp; Reset</a>
-  </nav>
-  <div style="margin-top:auto;padding:12px 16px;border-top:1px solid rgba(255,255,255,.1)">
-    <div id="sideUserInfo" style="display:none;margin-bottom:10px">
-      <div id="sideUserName" style="color:#fff;font-weight:700;font-size:13px"></div>
-      <div id="sideUserRole" style="color:rgba(255,255,255,.5);font-size:11px"></div>
-    </div>
-    <button onclick="doLogout()" id="logoutBtn" style="display:none;width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);border-radius:8px;padding:8px;font-size:13px;font-weight:600;cursor:pointer">Logout</button>
-  </div>
-</aside>
-
-<!-- BOTTOM NAV -->
-<div class="bottom-nav">
-  <div class="bnav-item" onclick="showPage('public')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Form</div>
-  <div class="bnav-item" id="bnDash" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dash</div>
-  <div class="bnav-item" id="bnScan" onclick="showPage('scan')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2M3 17v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2v-2M7 12h10"/></svg>Scan</div>
-  <div class="bnav-item" id="bnVal" onclick="showPage('validation')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Validasi</div>
-  <div class="bnav-item" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Menu</div>
 </div>
 
-<!-- MAIN -->
-<main class="main">
-
-<!-- PUBLIC FORM -->
-<div id="page-public" style="display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#e0e7ff,#f0fdf4)">
-  <div style="width:100%;max-width:420px;padding-top:20px">
-    <div class="card" style="border-radius:20px;overflow:hidden;padding:0;box-shadow:0 20px 48px rgba(0,0,0,.18)">
-      <div style="padding:24px 20px 16px;text-align:center;border-bottom:1px solid #e2e8f0">
-        <div id="pubLogoWrap" style="width:72px;height:72px;border-radius:50%;background:#e0e7ff;display:grid;place-items:center;font-size:32px;margin:0 auto 12px">🎓</div>
-        <h1 id="pubTitle" style="font-family:'Cinzel Decorative',serif;font-size:20px;font-weight:900;letter-spacing:3px;color:#0f172a">E-ABSENSI</h1>
-        <p id="pubSub" style="font-size:12px;color:#64748b;margin-top:4px;letter-spacing:.5px">Sistem Absensi Sekolah</p>
+<!-- ======================================================= -->
+<!-- PUBLIC PAGE                                              -->
+<!-- ======================================================= -->
+<div id="page-public" style="min-height:100vh;background:linear-gradient(135deg,#e0e7ff 0%,#f0fdf4 100%);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px">
+  <div style="width:100%;max-width:440px;padding-top:20px">
+    <div style="background:#fff;border-radius:24px;box-shadow:0 20px 60px rgba(99,102,241,.18);overflow:hidden">
+      <div style="background:linear-gradient(135deg,#7c3aed,#2563eb);padding:28px 24px 20px;text-align:center">
+        <div id="pubLogoWrap" style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:34px;margin:0 auto 14px">🎓</div>
+        <h1 id="pubTitle" class="font-cinzel" style="font-size:22px;font-weight:700;letter-spacing:3px;color:#fff">E-ABSENSI</h1>
+        <p id="pubSub" style="font-size:12px;color:rgba(255,255,255,.75);margin-top:6px;letter-spacing:.5px">Sistem Absensi Sekolah</p>
+        <div style="display:inline-block;margin-top:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:4px 14px;font-size:11px;font-weight:600;color:rgba(255,255,255,.9)">📋 Form Absensi Siswa</div>
       </div>
-      <div id="pubContent" style="padding:20px"><div style="text-align:center;padding:20px"><div class="spinner"></div></div></div>
-    </div>
-    <div style="text-align:center;margin-top:16px">
-      <a onclick="showPage('login')" style="font-size:12px;color:#7c3aed;cursor:pointer;font-weight:600">🔐 Login sebagai Admin / Guru</a>
-    </div>
-  </div>
-</div>
-
-<!-- LOGIN -->
-<div id="page-login" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);padding:20px">
-  <div style="width:100%;max-width:380px">
-    <div class="card" style="border-radius:20px;padding:32px">
-      <div style="text-align:center;margin-bottom:24px">
-        <div style="font-size:40px;margin-bottom:12px">🔐</div>
-        <h1 style="font-size:20px;font-weight:800;color:#0f172a">Login E-Absensi</h1>
-        <p style="font-size:13px;color:#64748b;margin-top:4px">Masukkan kredensial Anda</p>
+      <div id="pubContent" style="padding:24px">
+        <div style="text-align:center;padding:32px"><div class="spinner"></div><p style="margin-top:12px;color:#94a3b8;font-size:13px">Memuat data...</p></div>
       </div>
-      <div class="form-row"><label class="label">Username</label><input id="loginUser" class="input" placeholder="Username" type="text"></div>
-      <div class="form-row"><label class="label">Password</label><input id="loginPass" class="input" placeholder="Password" type="password" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <div id="loginErr" style="color:#ef4444;font-size:12px;margin-bottom:12px;display:none"></div>
-      <button class="btn btn-primary" style="width:100%;padding:12px" onclick="doLogin()" id="loginBtn">Masuk</button>
+    </div>
+    <div style="text-align:center;margin-top:18px">
+      <a onclick="showLoginPage()" style="font-size:12px;color:#7c3aed;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:5px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Login sebagai Admin / Guru
+      </a>
     </div>
   </div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="page-dashboard" class="page">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-    <div><h1>Dashboard</h1><p>Rekap absensi harian</p></div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <input type="date" id="dashDate" class="input" style="width:auto;padding:8px 12px;font-size:13px" oninput="loadDashboard()">
-      <button class="btn btn-outline btn-sm" onclick="showPage('scan')">📷 Scan QR</button>
+<!-- ======================================================= -->
+<!-- LOGIN PAGE                                               -->
+<!-- ======================================================= -->
+<div id="page-login" style="display:none;min-height:100vh;background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:400px">
+    <div style="background:#fff;border-radius:24px;box-shadow:0 24px 64px rgba(0,0,0,.35);padding:36px 32px">
+      <div style="text-align:center;margin-bottom:28px">
+        <div id="loginLogoWrap" style="width:72px;height:72px;border-radius:50%;background:#e0e7ff;display:grid;place-items:center;font-size:34px;margin:0 auto 14px">🎓</div>
+        <h1 class="font-cinzel" style="font-size:18px;font-weight:700;letter-spacing:2px;color:#1e1b4b">E-ABSENSI</h1>
+        <p style="font-size:12px;color:#64748b;margin-top:5px">SMP Negeri 1 Kebakkramat</p>
+        <div style="display:inline-block;margin-top:8px;background:#f3f0ff;border:1px solid #ede9fe;border-radius:999px;padding:3px 12px;font-size:11px;font-weight:600;color:#7c3aed">🔐 Login Admin / Guru</div>
+      </div>
+      <div class="form-row">
+        <label class="label">Username</label>
+        <div style="position:relative">
+          <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <input id="loginUser" class="input" placeholder="Masukkan username" type="text" style="padding-left:38px">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="label">Password</label>
+        <div style="position:relative">
+          <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <input id="loginPass" class="input" placeholder="Masukkan password" type="password" style="padding-left:38px;padding-right:40px" onkeydown="if(event.key==='Enter')doLogin()">
+          <button onclick="togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#94a3b8" type="button" id="pwdToggle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="loginErr" style="color:#ef4444;font-size:12px;margin-bottom:12px;display:none;padding:8px 12px;background:#fff5f5;border-radius:8px;border:1px solid #fecaca"></div>
+      <button class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;border-radius:12px" onclick="doLogin()" id="loginBtn">Masuk</button>
+      <div style="text-align:center;margin-top:16px">
+        <a onclick="showPage('public')" style="font-size:12px;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Kembali ke halaman absensi
+        </a>
+      </div>
     </div>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">
-    <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Total Siswa</div><div class="stat-value" id="dsTotalSiswa" style="color:#7c3aed">-</div></div>
-    <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Hadir</div><div class="stat-value" id="dsHadir" style="color:#10b981">-</div></div>
-    <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Izin</div><div class="stat-value" id="dsIzin" style="color:#3b82f6">-</div></div>
-    <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Sakit</div><div class="stat-value" id="dsSakit" style="color:#f59e0b">-</div></div>
-    <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Alpa</div><div class="stat-value" id="dsAlpa" style="color:#ef4444">-</div></div>
-    <div class="stat-card" onclick="showPage('validation')" style="cursor:pointer"><div style="font-size:12px;color:#64748b;font-weight:600">Perlu Validasi</div><div class="stat-value" id="dsPending" style="color:#f59e0b">-</div></div>
-  </div>
-  <div class="card" style="margin-bottom:20px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <h2 style="font-size:14px;font-weight:700">Grafik Tahunan</h2>
-      <input type="number" id="dashYear" class="input" style="width:90px;padding:6px 10px;font-size:13px;margin-left:auto" oninput="loadYearlyChart()">
-    </div>
-    <div style="position:relative;height:240px"><canvas id="yearlyChart"></canvas></div>
   </div>
 </div>
 
-<!-- SCAN QR -->
-<div id="page-scan" class="page">
-  <div class="page-header"><h1>Scan QR Code</h1><p>Scan kartu siswa untuk mencatat absensi</p></div>
-  <div id="scanLayout" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<!-- ======================================================= -->
+<!-- ADMIN AREA                                               -->
+<!-- ======================================================= -->
+<div id="admin-area" style="display:none;min-height:100vh;background:#f8fafc">
+
+  <!-- TOP HEADER -->
+  <header style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+    <div style="max-width:1280px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="adminLogoWrap" style="width:34px;height:34px;border-radius:50%;background:#e0e7ff;display:grid;place-items:center;font-size:16px;flex-shrink:0">🎓</div>
+        <div>
+          <div class="font-cinzel" style="font-size:13px;font-weight:700;color:#1e1b4b;letter-spacing:1px">E-ABSENSI</div>
+          <div id="adminSchoolName" style="font-size:10px;color:#64748b">SMP Negeri 1 Kebakkramat</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="text-align:right;display:none" id="userInfoBlock">
+          <div id="headerUserName" style="font-size:13px;font-weight:700;color:#0f172a"></div>
+          <div id="headerUserRole" style="font-size:10px;color:#64748b;text-transform:capitalize"></div>
+        </div>
+        <button onclick="doLogout()" class="btn btn-outline btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Logout
+        </button>
+      </div>
+    </div>
+    <!-- TAB NAV -->
+    <div style="border-top:1px solid #f1f5f9;background:#fafafa;overflow-x:auto">
+      <div style="max-width:1280px;margin:0 auto;padding:0 16px">
+        <div class="tab-nav">
+          <span class="tab-group-label">Utama:</span>
+          <button class="tab-btn" onclick="showAdminPage('dashboard')">📊 Dashboard</button>
+          <button class="tab-btn" onclick="showAdminPage('scan')">📷 Scan QR</button>
+          <button class="tab-btn" onclick="showAdminPage('history')">📋 Data Absensi</button>
+          <button class="tab-btn" onclick="showAdminPage('validation')">✅ Validasi</button>
+          <button class="tab-btn" onclick="showAdminPage('rekap')">📈 Rekap Bulanan</button>
+          <button class="tab-btn" onclick="showAdminPage('whatsapp')">💬 Laporan WA</button>
+          <span class="tab-group-label">Data:</span>
+          <button class="tab-btn" onclick="showAdminPage('classes')">🏫 Kelas</button>
+          <button class="tab-btn" onclick="showAdminPage('students')">👨‍🎓 Siswa</button>
+          <button class="tab-btn" onclick="showAdminPage('holidays')">📅 Hari Libur</button>
+          <span class="tab-group-label">Setting:</span>
+          <button class="tab-btn" onclick="showAdminPage('att-settings')">⏰ Jadwal</button>
+          <button class="tab-btn" onclick="showAdminPage('piket')">🛡️ Guru Piket</button>
+          <button class="tab-btn" id="tabUsers" onclick="showAdminPage('users')" style="display:none">👤 Users</button>
+          <button class="tab-btn" id="tabConfig" onclick="showAdminPage('webconfig')" style="display:none">⚙️ Konfigurasi</button>
+          <button class="tab-btn" id="tabReset" onclick="showAdminPage('reset')" style="display:none">🔄 Reset</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ADMIN PAGES -->
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div><h1>Dashboard</h1><p>Rekap absensi harian</p></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <input type="date" id="dashDate" class="input" style="width:auto;padding:8px 12px;font-size:13px" oninput="loadDashboard()">
+        <button class="btn btn-outline btn-sm" onclick="showAdminPage('scan')">📷 Scan QR</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+      <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Total Siswa</div><div class="stat-value" id="dsTotalSiswa" style="color:#7c3aed">-</div></div>
+      <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Hadir</div><div class="stat-value" id="dsHadir" style="color:#10b981">-</div></div>
+      <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Izin</div><div class="stat-value" id="dsIzin" style="color:#3b82f6">-</div></div>
+      <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Sakit</div><div class="stat-value" id="dsSakit" style="color:#f59e0b">-</div></div>
+      <div class="stat-card"><div style="font-size:12px;color:#64748b;font-weight:600">Alpa</div><div class="stat-value" id="dsAlpa" style="color:#ef4444">-</div></div>
+      <div class="stat-card" onclick="showAdminPage('validation')" style="cursor:pointer"><div style="font-size:12px;color:#64748b;font-weight:600">Perlu Validasi</div><div class="stat-value" id="dsPending" style="color:#f59e0b">-</div></div>
+    </div>
     <div class="card">
-      <h2 style="font-size:14px;font-weight:700;margin-bottom:12px">Kamera</h2>
-      <div style="border-radius:12px;overflow:hidden;max-width:340px"><div id="qr-reader" style="width:100%"></div></div>
-      <div style="margin-top:12px">
-        <button id="startScanBtn" class="btn btn-primary" style="width:100%" onclick="startScan()">📷 Mulai Scan</button>
-        <button id="stopScanBtn" class="btn btn-outline" style="width:100%;display:none;margin-top:8px" onclick="stopScan()">⏹ Stop Scan</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <h2 style="font-size:14px;font-weight:700">Grafik Tahunan</h2>
+        <input type="number" id="dashYear" class="input" style="width:90px;padding:6px 10px;font-size:13px;margin-left:auto" oninput="loadYearlyChart()">
       </div>
-      <div style="margin-top:12px">
-        <label class="label">Atau masukkan NIS</label>
-        <div style="display:flex;gap:8px"><input id="manualNis" class="input" placeholder="NIS siswa" style="flex:1"><button class="btn btn-primary" onclick="lookupByNis()">Cari</button></div>
+      <div style="position:relative;height:240px"><canvas id="yearlyChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SCAN QR -->
+  <div id="page-scan" class="page">
+    <div class="page-header"><h1>Scan QR Code</h1><p>Scan kartu siswa untuk mencatat absensi</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:12px">Kamera</h2>
+        <div style="border-radius:12px;overflow:hidden;max-width:340px"><div id="qr-reader" style="width:100%"></div></div>
+        <div style="margin-top:12px">
+          <button id="startScanBtn" class="btn btn-primary" style="width:100%" onclick="startScan()">📷 Mulai Scan</button>
+          <button id="stopScanBtn" class="btn btn-outline" style="width:100%;display:none;margin-top:8px" onclick="stopScan()">⏹ Stop Scan</button>
+        </div>
+        <div style="margin-top:12px">
+          <label class="label">Atau masukkan NIS</label>
+          <div style="display:flex;gap:8px"><input id="manualNis" class="input" placeholder="NIS siswa" style="flex:1"><button class="btn btn-primary" onclick="lookupByNis()">Cari</button></div>
+        </div>
+      </div>
+      <div class="card" id="scanResult" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px">
+        <div style="color:#94a3b8;text-align:center"><div style="font-size:48px;margin-bottom:8px">📷</div><p>Hasil scan akan tampil di sini</p></div>
       </div>
     </div>
-    <div class="card" id="scanResult" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px">
-      <div style="color:#94a3b8;text-align:center"><div style="font-size:48px;margin-bottom:8px">📷</div><p>Hasil scan akan tampil di sini</p></div>
-    </div>
   </div>
-</div>
 
-<!-- DATA ABSENSI -->
-<div id="page-history" class="page">
-  <div class="page-header"><h1>Data Absensi</h1><p>Lihat dan kelola catatan absensi</p></div>
-  <div class="card" style="margin-bottom:16px">
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-      <div style="flex:1;min-width:120px"><label class="label">Tanggal</label><input type="date" id="histDate" class="input" style="padding:8px 12px;font-size:13px"></div>
-      <div style="flex:1;min-width:140px"><label class="label">Kelas</label><select id="histClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Semua Kelas</option></select></div>
-      <button class="btn btn-primary btn-sm" onclick="loadHistory()">Cari</button>
-    </div>
-  </div>
-  <div class="card">
-    <div id="histLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
-    <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Tgl</th><th>Status</th><th>Ket</th><th>Validasi</th><th>Aksi</th></tr></thead><tbody id="histBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- VALIDASI -->
-<div id="page-validation" class="page">
-  <div class="page-header"><h1>Validasi Izin/Sakit</h1><p>Approve atau tolak laporan siswa</p></div>
-  <div class="card" style="margin-bottom:16px">
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-      <div style="flex:1;min-width:120px"><label class="label">Tanggal</label><input type="date" id="valDate" class="input" style="padding:8px 12px;font-size:13px"></div>
-      <div style="flex:1;min-width:140px"><label class="label">Kelas</label><select id="valClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Semua Kelas</option></select></div>
-      <div style="flex:1;min-width:140px"><label class="label">Status Validasi</label>
-        <select id="valStatus" class="select" style="font-size:13px;padding:8px 32px 8px 12px">
-          <option value="pending">Menunggu</option><option value="approved">Disetujui</option><option value="rejected">Ditolak</option><option value="">Semua</option>
-        </select>
+  <!-- DATA ABSENSI -->
+  <div id="page-history" class="page">
+    <div class="page-header"><h1>Data Absensi</h1><p>Lihat dan kelola catatan absensi</p></div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <div style="flex:1;min-width:120px"><label class="label">Tanggal</label><input type="date" id="histDate" class="input" style="padding:8px 12px;font-size:13px"></div>
+        <div style="flex:1;min-width:140px"><label class="label">Kelas</label><select id="histClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Semua Kelas</option></select></div>
+        <button class="btn btn-primary btn-sm" onclick="loadHistory()">Cari</button>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="loadValidation()">Cari</button>
     </div>
-  </div>
-  <div class="card">
-    <div id="valLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
-    <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Tgl</th><th>Status</th><th>Keterangan</th><th>Validasi</th><th>Aksi</th></tr></thead><tbody id="valBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- REKAP BULANAN -->
-<div id="page-rekap" class="page">
-  <div class="page-header"><h1>Rekap Bulanan</h1><p>Laporan absensi per kelas per bulan</p></div>
-  <div class="card" style="margin-bottom:16px">
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-      <div style="flex:1;min-width:140px"><label class="label">Kelas</label><select id="rekapClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Pilih Kelas</option></select></div>
-      <div style="min-width:120px"><label class="label">Bulan</label>
-        <select id="rekapMonth" class="select" style="font-size:13px;padding:8px 32px 8px 12px">
-          <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-        </select>
-      </div>
-      <div style="min-width:90px"><label class="label">Tahun</label><input type="number" id="rekapYear" class="input" style="width:90px;padding:8px 10px;font-size:13px"></div>
-      <button class="btn btn-primary btn-sm" onclick="loadRekap()">Tampilkan</button>
-    </div>
-  </div>
-  <div class="card" id="rekapResult"><p style="color:#94a3b8;text-align:center;padding:20px">Pilih kelas, bulan, dan tahun, lalu klik Tampilkan.</p></div>
-</div>
-
-<!-- WHATSAPP -->
-<div id="page-whatsapp" class="page">
-  <div class="page-header"><h1>Laporan WhatsApp</h1><p>Kirim laporan absensi via Fonnte</p></div>
-  <div id="waLayout" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card">
-      <h2 style="font-size:14px;font-weight:700;margin-bottom:12px">Pengaturan</h2>
-      <div class="form-row"><label class="label">Tanggal</label><input type="date" id="waDate" class="input" style="font-size:13px"></div>
-      <div class="form-row"><label class="label">Kelas</label><select id="waClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px" onchange="loadWaPreview()"><option value="">Semua Kelas</option></select></div>
+      <div id="histLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Tgl</th><th>Status</th><th>Ket</th><th>Validasi</th><th>Aksi</th></tr></thead><tbody id="histBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- VALIDASI -->
+  <div id="page-validation" class="page">
+    <div class="page-header"><h1>Validasi Izin/Sakit</h1><p>Approve atau tolak laporan siswa</p></div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <div style="flex:1;min-width:120px"><label class="label">Tanggal</label><input type="date" id="valDate" class="input" style="padding:8px 12px;font-size:13px"></div>
+        <div style="flex:1;min-width:140px"><label class="label">Kelas</label><select id="valClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Semua Kelas</option></select></div>
+        <div style="flex:1;min-width:140px"><label class="label">Status Validasi</label>
+          <select id="valStatus" class="select" style="font-size:13px;padding:8px 32px 8px 12px">
+            <option value="pending">Menunggu</option><option value="approved">Disetujui</option><option value="rejected">Ditolak</option><option value="">Semua</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadValidation()">Cari</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="valLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Tgl</th><th>Status</th><th>Keterangan</th><th>Validasi</th><th>Aksi</th></tr></thead><tbody id="valBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- REKAP BULANAN -->
+  <div id="page-rekap" class="page">
+    <div class="page-header"><h1>Rekap Bulanan</h1><p>Laporan absensi per kelas per bulan</p></div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <div style="flex:1;min-width:140px"><label class="label">Kelas</label><select id="rekapClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Pilih Kelas</option></select></div>
+        <div style="min-width:120px"><label class="label">Bulan</label>
+          <select id="rekapMonth" class="select" style="font-size:13px;padding:8px 32px 8px 12px">
+            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+          </select>
+        </div>
+        <div style="min-width:90px"><label class="label">Tahun</label><input type="number" id="rekapYear" class="input" style="width:90px;padding:8px 10px;font-size:13px"></div>
+        <button class="btn btn-primary btn-sm" onclick="loadRekap()">Tampilkan</button>
+      </div>
+    </div>
+    <div class="card" id="rekapResult"><p style="color:#94a3b8;text-align:center;padding:20px">Pilih kelas, bulan, dan tahun, lalu klik Tampilkan.</p></div>
+  </div>
+
+  <!-- WHATSAPP -->
+  <div id="page-whatsapp" class="page">
+    <div class="page-header"><h1>Laporan WhatsApp</h1><p>Kirim laporan absensi via Fonnte</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:12px">Pengaturan</h2>
+        <div class="form-row"><label class="label">Tanggal</label><input type="date" id="waDate" class="input" style="font-size:13px"></div>
+        <div class="form-row">
+          <label class="label">Pilih Kelas</label>
+          <div id="waClassList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;padding:2px"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="previewWA()">👁 Preview</button>
+          <button class="btn btn-green btn-sm" onclick="sendWA()">📤 Kirim WA</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:12px">Preview Pesan</h2>
+        <div id="waPreview" style="font-size:13px;color:#374151;white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;min-height:100px;border:1px solid #e2e8f0">Preview akan tampil di sini.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KELAS -->
+  <div id="page-classes" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div><h1>Kelola Kelas</h1><p>Data kelas sekolah</p></div>
+      <button class="btn btn-primary btn-sm" onclick="showAddClassModal()">+ Tambah Kelas</button>
+    </div>
+    <div class="card">
+      <div id="classLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama Kelas</th><th>Wali Kelas</th><th>NIP</th><th>WA Group ID</th><th>Aksi</th></tr></thead><tbody id="classBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- SISWA -->
+  <div id="page-students" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div><h1>Data Siswa</h1><p>Manajemen data siswa</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="loadWaPreview()">🔍 Preview</button>
-        <button class="btn btn-primary btn-sm" onclick="sendWA()">📤 Kirim WA</button>
+        <button class="btn btn-outline btn-sm" onclick="showImportStudentModal()">📥 Import</button>
+        <button class="btn btn-primary btn-sm" onclick="showAddStudentModal()">+ Tambah Siswa</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:140px"><label class="label">Filter Kelas</label><select id="stuClassFilter" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Semua Kelas</option></select></div>
+        <button class="btn btn-primary btn-sm" onclick="loadStudents()">Tampilkan</button>
       </div>
     </div>
     <div class="card">
-      <h2 style="font-size:14px;font-weight:700;margin-bottom:12px">Preview Pesan</h2>
-      <div id="waPreview" style="font-size:13px;white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;min-height:120px;color:#374151">Klik Preview untuk melihat pesan.</div>
+      <div id="stuLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama</th><th>NIS</th><th>L/P</th><th>Kelas</th><th>Aksi</th></tr></thead><tbody id="stuBody"></tbody></table></div>
     </div>
   </div>
-</div>
 
-<!-- KELOLA KELAS -->
-<div id="page-classes" class="page">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-    <div><h1>Kelola Kelas</h1><p>Tambah dan kelola data kelas</p></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-outline btn-sm" onclick="showModal('bulkClassModal')">📋 Tambah Massal</button>
-      <button class="btn btn-primary btn-sm" onclick="openAddClass()">+ Tambah Kelas</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama Kelas</th><th>Wali Kelas</th><th>NIP</th><th>Grup WA</th><th>Aksi</th></tr></thead><tbody id="classBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- DATA SISWA -->
-<div id="page-students" class="page">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-    <div><h1>Data Siswa</h1><p>Kelola data siswa per kelas</p></div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <select id="stuClassFilter" class="select" style="font-size:13px;padding:8px 32px 8px 12px;width:auto" onchange="loadStudents()"><option value="">Pilih Kelas</option></select>
-      <button class="btn btn-outline btn-sm" onclick="showBulkStudentModal()">📋 Massal</button>
-      <button class="btn btn-primary btn-sm" onclick="showAddStudentModal()">+ Tambah Siswa</button>
-    </div>
-  </div>
-  <div class="card">
-    <div id="stuCount" style="font-size:13px;color:#64748b;margin-bottom:10px">Pilih kelas untuk melihat siswa.</div>
-    <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama</th><th>NIS</th><th>Jenis Kelamin</th><th>QR</th><th>Aksi</th></tr></thead><tbody id="stuBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- HARI LIBUR -->
-<div id="page-holidays" class="page">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div><h1>Hari Libur</h1><p>Kelola daftar hari libur sekolah</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openAddHoliday()">+ Tambah Libur</button>
-  </div>
-  <div class="card">
-    <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama Libur</th><th>Mulai</th><th>Selesai</th><th>Aksi</th></tr></thead><tbody id="holBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- JADWAL ABSENSI -->
-<div id="page-att-settings" class="page">
-  <div class="page-header"><h1>Jadwal Absensi</h1><p>Atur jam masuk dan pulang per hari</p></div>
-  <div class="card"><div id="attSettingsBody"></div></div>
-</div>
-
-<!-- GURU PIKET -->
-<div id="page-piket" class="page">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div><h1>Guru Piket</h1><p>Jadwal guru piket per hari</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openPiketModal()">+ Tambah Piket</button>
-  </div>
-  <div class="card">
-    <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama Guru</th><th>Hari</th><th>Aksi</th></tr></thead><tbody id="piketBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- USER MANAGEMENT -->
-<div id="page-users" class="page">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div><h1>Manajemen User</h1><p>Kelola akun admin dan guru</p></div>
-    <button class="btn btn-primary btn-sm" onclick="openAddUser()">+ Tambah User</button>
-  </div>
-  <div class="card">
-    <div class="table-wrap"><table><thead><tr><th>#</th><th>Username</th><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead><tbody id="userBody"></tbody></table></div>
-  </div>
-</div>
-
-<!-- KONFIGURASI WEB -->
-<div id="page-webconfig" class="page">
-  <div class="page-header"><h1>Konfigurasi Web</h1><p>Pengaturan tampilan dan integrasi</p></div>
-  <div id="cfgLayout" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div class="card">
-      <h2 style="font-size:14px;font-weight:700;margin-bottom:14px">Tampilan Aplikasi</h2>
-      <div class="form-row"><label class="label">Judul Aplikasi</label><input id="cfgTitle" class="input" placeholder="E-ABSENSI"></div>
-      <div class="form-row"><label class="label">Subjudul</label><input id="cfgSubtitle" class="input" placeholder="Sistem Absensi Sekolah"></div>
-      <div class="form-row"><label class="label">Nama Sekolah</label><input id="cfgSchool" class="input"></div>
-      <div class="form-row"><label class="label">Kota Sekolah</label><input id="cfgCity" class="input"></div>
-      <div class="form-row"><label class="label">URL Logo (Google Drive)</label><input id="cfgLogo" class="input" placeholder="https://drive.google.com/..."></div>
-      <div class="form-row"><label class="label">Background 1</label><input id="cfgBg1" class="input"></div>
-      <div class="form-row"><label class="label">Background 2</label><input id="cfgBg2" class="input"></div>
-      <div class="form-row"><label class="label">Background 3</label><input id="cfgBg3" class="input"></div>
-      <div class="form-row"><label class="label">Background 4</label><input id="cfgBg4" class="input"></div>
-      <button class="btn btn-primary" onclick="saveWebConfig()">💾 Simpan Tampilan</button>
+  <!-- HARI LIBUR -->
+  <div id="page-holidays" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div><h1>Hari Libur</h1><p>Daftar hari libur sekolah</p></div>
+      <button class="btn btn-primary btn-sm" onclick="showAddHolidayModal()">+ Tambah Libur</button>
     </div>
     <div class="card">
-      <h2 style="font-size:14px;font-weight:700;margin-bottom:14px">WhatsApp (Fonnte)</h2>
-      <div class="form-row"><label class="label">Token Fonnte</label><input id="cfgWaToken" class="input" type="password" placeholder="Token dari fonnte.com"></div>
-      <div class="form-row"><label class="label">Nomor Target (WA)</label><input id="cfgWaTarget" class="input" placeholder="6281234567890"></div>
-      <div class="form-row"><label class="label">Provider</label>
-        <select id="cfgWaProvider" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="fonnte">Fonnte</option></select>
+      <div id="holLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama Libur</th><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Aksi</th></tr></thead><tbody id="holBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- JADWAL ABSENSI -->
+  <div id="page-att-settings" class="page">
+    <div class="page-header"><h1>Jadwal Absensi</h1><p>Atur jam masuk dan keluar per hari</p></div>
+    <div class="card">
+      <div id="attSetLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Hari</th><th>Aktif</th><th>Masuk Mulai</th><th>Masuk Sampai</th><th>Keluar Mulai</th><th>Keluar Sampai</th><th>Aksi</th></tr></thead>
+          <tbody id="attSetBody"></tbody>
+        </table>
       </div>
-      <div class="form-row" style="display:flex;align-items:center;gap:10px">
-        <input type="checkbox" id="cfgWaAuto" style="width:16px;height:16px;accent-color:#7c3aed">
-        <label style="font-size:13px;font-weight:600">Auto-kirim WA</label>
+    </div>
+  </div>
+
+  <!-- GURU PIKET -->
+  <div id="page-piket" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div><h1>Guru Piket</h1><p>Jadwal guru piket per hari</p></div>
+      <button class="btn btn-primary btn-sm" onclick="showAddPiketModal()">+ Tambah</button>
+    </div>
+    <div class="card">
+      <div id="piketLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Guru</th><th>Hari</th><th>Aksi</th></tr></thead><tbody id="piketBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- MANAJEMEN USER -->
+  <div id="page-users" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div><h1>Manajemen User</h1><p>Kelola akun admin dan guru</p></div>
+      <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">+ Tambah User</button>
+    </div>
+    <div class="card">
+      <div id="userLoading" style="text-align:center;padding:20px;display:none"><div class="spinner"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead><tbody id="userBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- KONFIGURASI WEB -->
+  <div id="page-webconfig" class="page">
+    <div class="page-header"><h1>Konfigurasi Web</h1><p>Pengaturan tampilan dan integrasi</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:16px">Identitas Sekolah</h2>
+        <div class="form-row"><label class="label">Judul Aplikasi</label><input id="cfgTitle" class="input" placeholder="E-ABSENSI"></div>
+        <div class="form-row"><label class="label">Subtitle</label><input id="cfgSub" class="input" placeholder="Sistem Absensi Sekolah"></div>
+        <div class="form-row"><label class="label">Nama Sekolah</label><input id="cfgSchool" class="input" placeholder="SMP Negeri 1 Kebakkramat"></div>
+        <div class="form-row"><label class="label">Kota</label><input id="cfgCity" class="input" placeholder="Kebakkramat"></div>
+        <div class="form-row"><label class="label">URL Logo</label><input id="cfgLogo" class="input" placeholder="https://..."></div>
+        <button class="btn btn-primary btn-sm" onclick="saveWebConfig()">💾 Simpan</button>
       </div>
-      <div class="form-row"><label class="label">Jam Auto-kirim</label><input id="cfgWaTime" class="input" type="time"></div>
-      <div class="form-row"><label class="label">Scope</label>
-        <select id="cfgWaScope" class="select" style="font-size:13px;padding:8px 32px 8px 12px">
-          <option value="all">Semua Kelas</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option>
-        </select>
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:16px">WhatsApp (Fonnte)</h2>
+        <div class="form-row"><label class="label">Token Fonnte</label><input id="cfgWaToken" class="input" placeholder="Token API Fonnte"></div>
+        <div class="form-row"><label class="label">Nomor Target</label><input id="cfgWaNum" class="input" placeholder="628xxxxxxxxxx"></div>
+        <div class="form-row"><label class="label">Auto Send</label>
+          <select id="cfgWaAuto" class="select" style="font-size:13px;padding:8px 32px 8px 12px">
+            <option value="false">Nonaktif</option><option value="true">Aktif</option>
+          </select>
+        </div>
+        <div class="form-row"><label class="label">Jam Auto Send</label><input id="cfgWaTime" class="input" type="time"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveWAConfig()">💾 Simpan WA</button>
       </div>
-      <button class="btn btn-green" onclick="saveWAConfig()">💾 Simpan WA</button>
     </div>
   </div>
-</div>
 
-<!-- RESET DATA -->
-<div id="page-reset" class="page">
-  <div class="page-header"><h1>Kelola &amp; Reset Data</h1><p>Hapus data secara permanen (hati-hati!)</p></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
-    <div class="card" style="border:2px solid #fecaca">
-      <h2 style="font-size:14px;font-weight:700;color:#dc2626;margin-bottom:8px">🗑 Hapus Data Absensi</h2>
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Hapus semua catatan absensi.</p>
-      <div class="form-row"><label class="label">Tahun (kosongkan = semua)</label><input id="resetYear" class="input" type="number" placeholder="2024" style="font-size:13px"></div>
-      <button class="btn btn-danger btn-sm" onclick="confirmReset('attendance')">Hapus Absensi</button>
+  <!-- KELOLA & RESET -->
+  <div id="page-reset" class="page">
+    <div class="page-header"><h1>Kelola &amp; Reset Data</h1><p>Hapus data secara permanen</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:8px">Reset Absensi</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px">Hapus semua data absensi berdasarkan tahun.</p>
+        <div class="form-row"><label class="label">Tahun (kosongkan = semua)</label><input id="resetYear" type="number" class="input" placeholder="2024"></div>
+        <button class="btn btn-danger btn-sm" onclick="doResetAttendance()">🗑️ Reset Absensi</button>
+      </div>
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:8px">Reset Siswa</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px">Hapus semua data siswa.</p>
+        <button class="btn btn-danger btn-sm" onclick="doResetStudents()">🗑️ Reset Siswa</button>
+      </div>
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:8px">Reset Hari Libur</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px">Hapus semua data hari libur.</p>
+        <button class="btn btn-danger btn-sm" onclick="doResetHolidays()">🗑️ Reset Hari Libur</button>
+      </div>
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:8px">Reset Guru Piket</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px">Hapus semua jadwal guru piket.</p>
+        <button class="btn btn-danger btn-sm" onclick="doResetGuruPiket()">🗑️ Reset Guru Piket</button>
+      </div>
+      <div class="card">
+        <h2 style="font-size:14px;font-weight:700;margin-bottom:8px">Reset Users</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px">Hapus semua user kecuali admin.</p>
+        <button class="btn btn-danger btn-sm" onclick="doResetUsers()">🗑️ Reset Users</button>
+      </div>
     </div>
-    <div class="card" style="border:2px solid #fecaca">
-      <h2 style="font-size:14px;font-weight:700;color:#dc2626;margin-bottom:8px">🗑 Hapus Semua Siswa</h2>
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Hapus seluruh data siswa.</p>
-      <button class="btn btn-danger btn-sm" onclick="confirmReset('students')">Hapus Siswa</button>
-    </div>
-    <div class="card" style="border:2px solid #fecaca">
-      <h2 style="font-size:14px;font-weight:700;color:#dc2626;margin-bottom:8px">🗑 Hapus Hari Libur</h2>
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Hapus semua data hari libur.</p>
-      <button class="btn btn-danger btn-sm" onclick="confirmReset('holidays')">Hapus Hari Libur</button>
-    </div>
-    <div class="card" style="border:2px solid #fecaca">
-      <h2 style="font-size:14px;font-weight:700;color:#dc2626;margin-bottom:8px">🗑 Hapus Guru Piket</h2>
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Hapus semua jadwal guru piket.</p>
-      <button class="btn btn-danger btn-sm" onclick="confirmReset('piket')">Hapus Piket</button>
-    </div>
-    <div class="card" style="border:2px solid #fecaca">
-      <h2 style="font-size:14px;font-weight:700;color:#dc2626;margin-bottom:8px">🗑 Hapus Akun Guru</h2>
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Hapus semua akun guru (admin dipertahankan).</p>
-      <button class="btn btn-danger btn-sm" onclick="confirmReset('users')">Hapus Akun Guru</button>
-    </div>
   </div>
-</div>
 
-</main>
-
-<!-- ====== MODALS ====== -->
-<div id="classModal" class="modal-bg" style="display:none"><div class="modal">
-  <h2 id="classMTitle">Tambah Kelas</h2>
-  <div class="form-row"><label class="label">Nama Kelas</label><input id="mClassName" class="input" placeholder="Contoh: VII A"></div>
-  <div class="form-row"><label class="label">Wali Kelas</label><input id="mClassWali" class="input" placeholder="Nama wali kelas"></div>
-  <div class="form-row"><label class="label">NIP Wali Kelas</label><input id="mClassNip" class="input" placeholder="NIP"></div>
-  <div class="form-row"><label class="label">ID Grup WhatsApp</label><input id="mClassWa" class="input" placeholder="628xxxx"></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('classModal')">Batal</button>
-    <button class="btn btn-primary" onclick="saveClass()" id="saveClassBtn">Simpan</button>
-  </div>
-</div></div>
-
-<div id="bulkClassModal" class="modal-bg" style="display:none"><div class="modal">
-  <h2>Tambah Kelas Massal</h2>
-  <div class="form-row"><label class="label">Nama Kelas (satu per baris)</label><textarea id="bulkClassNames" class="input" rows="8" placeholder="VII A&#10;VII B&#10;VIII A&#10;IX A"></textarea></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('bulkClassModal')">Batal</button>
-    <button class="btn btn-primary" onclick="saveBulkClasses()">Simpan Semua</button>
-  </div>
-</div></div>
-
-<div id="studentModal" class="modal-bg" style="display:none"><div class="modal">
-  <h2 id="stuMTitle">Tambah Siswa</h2>
-  <div class="form-row"><label class="label">Nama Lengkap</label><input id="mStuName" class="input" placeholder="Nama siswa"></div>
-  <div class="form-row"><label class="label">NIS</label><input id="mStuNis" class="input" placeholder="Nomor Induk Siswa"></div>
-  <div class="form-row"><label class="label">Jenis Kelamin</label>
-    <select id="mStuGender" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="">Pilih</option><option value="L">Laki-laki</option><option value="P">Perempuan</option></select>
-  </div>
-  <div class="form-row"><label class="label">Kelas</label><select id="mStuClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"></select></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('studentModal')">Batal</button>
-    <button class="btn btn-primary" onclick="saveStudent()" id="saveStuBtn">Simpan</button>
-  </div>
-</div></div>
-
-<div id="bulkStuModal" class="modal-bg" style="display:none"><div class="modal" style="max-width:500px">
-  <h2>Tambah Siswa Massal</h2>
-  <div class="form-row"><label class="label">Kelas</label><select id="mBulkStuClass" class="select" style="font-size:13px;padding:8px 32px 8px 12px"></select></div>
-  <div class="form-row"><label class="label">Data Siswa (Nama,NIS,L/P — satu per baris)</label>
-    <textarea id="bulkStuData" class="input" rows="10" placeholder="Ahmad Fauzi,12345,L&#10;Siti Aisyah,12346,P&#10;Budi Santoso,12347,L"></textarea>
-  </div>
-  <p style="font-size:11px;color:#94a3b8;margin-bottom:12px">NIS dan jenis kelamin opsional.</p>
-  <div style="display:flex;gap:8px;justify-content:flex-end">
-    <button class="btn btn-outline" onclick="hideModal('bulkStuModal')">Batal</button>
-    <button class="btn btn-primary" onclick="saveBulkStudents()">Simpan Semua</button>
-  </div>
-</div></div>
-
-<div id="holidayModal" class="modal-bg" style="display:none"><div class="modal">
-  <h2>Tambah Hari Libur</h2>
-  <div class="form-row"><label class="label">Nama Libur</label><input id="mHolName" class="input" placeholder="Libur Lebaran"></div>
-  <div class="form-row"><label class="label">Tanggal Mulai</label><input id="mHolStart" class="input" type="date"></div>
-  <div class="form-row"><label class="label">Tanggal Selesai</label><input id="mHolEnd" class="input" type="date"></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('holidayModal')">Batal</button>
-    <button class="btn btn-primary" onclick="saveHoliday()">Simpan</button>
-  </div>
-</div></div>
-
-<div id="piketModal" class="modal-bg" style="display:none"><div class="modal">
-  <h2>Tambah Guru Piket</h2>
-  <div class="form-row"><label class="label">Guru</label><select id="mPiketUser" class="select" style="font-size:13px;padding:8px 32px 8px 12px"></select></div>
-  <div class="form-row"><label class="label">Hari</label>
-    <select id="mPiketDay" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select>
-  </div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('piketModal')">Batal</button>
-    <button class="btn btn-primary" onclick="savePiket()">Simpan</button>
-  </div>
-</div></div>
-
-<div id="userModal" class="modal-bg" style="display:none"><div class="modal">
-  <h2 id="userMTitle">Tambah User</h2>
-  <div class="form-row"><label class="label">Username</label><input id="mUserUsername" class="input" placeholder="Username"></div>
-  <div class="form-row"><label class="label">Nama Lengkap</label><input id="mUserName" class="input" placeholder="Nama"></div>
-  <div class="form-row"><label class="label">Password</label><input id="mUserPass" class="input" type="password" placeholder="Password (kosongkan jika tidak diubah)"></div>
-  <div class="form-row"><label class="label">Role</label>
-    <select id="mUserRole" class="select" style="font-size:13px;padding:8px 32px 8px 12px"><option value="guru">Guru</option><option value="admin">Admin</option></select>
-  </div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('userModal')">Batal</button>
-    <button class="btn btn-primary" onclick="saveUser()" id="saveUserBtn">Simpan</button>
-  </div>
-</div></div>
-
-<div id="qrModal" class="modal-bg" style="display:none"><div class="modal" style="text-align:center">
-  <h2 id="qrModalTitle">QR Code Siswa</h2>
-  <div id="qrModalImg" style="margin:16px 0;display:flex;justify-content:center"></div>
-  <p id="qrModalName" style="font-weight:700;font-size:14px"></p>
-  <p id="qrModalNis" style="font-size:12px;color:#64748b;margin-top:4px"></p>
-  <div style="display:flex;gap:8px;justify-content:center;margin-top:16px">
-    <button class="btn btn-outline" onclick="hideModal('qrModal')">Tutup</button>
-    <button class="btn btn-primary" onclick="printQr()">🖨 Cetak</button>
-  </div>
-</div></div>
-
-<div id="confirmModal" class="modal-bg" style="display:none"><div class="modal" style="text-align:center;max-width:360px">
-  <div style="font-size:48px;margin-bottom:12px">⚠️</div>
-  <h2 id="confirmTitle" style="color:#dc2626">Konfirmasi</h2>
-  <p id="confirmMsg" style="font-size:13px;color:#64748b;margin:12px 0 20px"></p>
-  <div style="display:flex;gap:8px;justify-content:center">
-    <button class="btn btn-outline" onclick="hideModal('confirmModal')">Batal</button>
-    <button class="btn btn-danger" id="confirmOkBtn">Ya, Lanjutkan</button>
-  </div>
-</div></div>
-
-<div id="toast" class="toast"></div>
+</div><!-- end admin-area -->
 
 <script>
-// ====================================================================
-// STATE
-// ====================================================================
-var STATE = { token: localStorage.getItem('ea_token')||null, user:null, classes:[], students:[], profiles:[], editClassId:null, editStuId:null, editUserId:null };
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+var G = {
+  token: null,
+  user:  null,
+  config: { app_title:'E-ABSENSI', app_subtitle:'Sistem Absensi Sekolah', school_name:'SMP Negeri 1 Kebakkramat' },
+  classes: [],
+  holidays: [],
+  settings: [],
+  qrScanner: null,
+  yearlyChartObj: null,
+  currentAdminPage: null
+};
 
-// ====================================================================
-// GSR wrapper
-// ====================================================================
-function gsr(fnName) {
-  var args = Array.prototype.slice.call(arguments, 1);
-  return new Promise(function(resolve, reject) {
-    var runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-    runner[fnName].apply(runner, args);
-  });
-}
+var TODAY = (function(){
+  var d = new Date();
+  return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
+})();
 
-// ====================================================================
+// ============================================================
 // TOAST
-// ====================================================================
-var _tt;
-function showToast(msg, type) {
+// ============================================================
+function toast(msg, type) {
+  type = type || 'info';
   var t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast '+(type||'info')+' show';
-  clearTimeout(_tt); _tt = setTimeout(function(){ t.className='toast '+(type||'info'); }, 3500);
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(function(){ t.className = 'toast'; }, 3200);
 }
 
-// ====================================================================
+// ============================================================
 // MODAL
-// ====================================================================
-function showModal(id){ document.getElementById(id).style.display='flex'; }
-function hideModal(id){ document.getElementById(id).style.display='none'; }
+// ============================================================
+function openModal(title, bodyHtml, okLabel, okFn) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  var okBtn = document.getElementById('modalOk');
+  okBtn.textContent = okLabel || 'OK';
+  okBtn.onclick = okFn || closeModal;
+  document.getElementById('modalBg').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modalBg').style.display = 'none'; }
 
-// ====================================================================
-// SIDEBAR
-// ====================================================================
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('open'); }
-function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
-
-// ====================================================================
-// PAGES
-// ====================================================================
+// ============================================================
+// PAGE ROUTING
+// ============================================================
 function showPage(name) {
-  var pages = ['public','login','dashboard','scan','history','validation','rekap','whatsapp','classes','students','holidays','att-settings','piket','users','webconfig','reset'];
-  pages.forEach(function(p){ var el=document.getElementById('page-'+p); if(el) el.style.display='none'; });
-  var el = document.getElementById('page-'+name);
-  if (!el) return;
-  if (name==='public') el.style.display='flex';
-  else if (name==='login') el.style.display='flex';
-  else el.style.display='block';
-  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
-  document.querySelectorAll('[data-page="'+name+'"]').forEach(function(n){ n.classList.add('active'); });
-  closeSidebar();
-  onPageLoad(name);
-}
-
-function onPageLoad(name) {
-  if (name==='dashboard')    { initDashDate(); loadDashboard(); loadYearlyChart(); }
-  if (name==='classes')      { loadClasses(); }
-  if (name==='students')     { fillClassSelect('stuClassFilter'); }
-  if (name==='holidays')     { loadHolidays(); }
-  if (name==='history')      { fillClassSelect('histClass'); if(!document.getElementById('histDate').value) document.getElementById('histDate').value=todayStr(); loadHistory(); }
-  if (name==='validation')   { fillClassSelect('valClass'); if(!document.getElementById('valDate').value) document.getElementById('valDate').value=todayStr(); loadValidation(); }
-  if (name==='rekap')        { fillClassSelect('rekapClass'); initRekapDate(); }
-  if (name==='whatsapp')     { fillClassSelect('waClass'); if(!document.getElementById('waDate').value) document.getElementById('waDate').value=todayStr(); }
-  if (name==='att-settings') { loadAttSettings(); }
-  if (name==='piket')        { loadPiket(); }
-  if (name==='users')        { loadUsers(); }
-  if (name==='webconfig')    { loadWebConfig(); }
-  if (name==='scan')         { stopScan(); }
-  applyResponsive();
-}
-
-// ====================================================================
-// AUTH
-// ====================================================================
-function doLogin() {
-  var u=document.getElementById('loginUser').value.trim(), p=document.getElementById('loginPass').value;
-  var err=document.getElementById('loginErr'); err.style.display='none';
-  if(!u||!p){ err.textContent='Username dan password diperlukan'; err.style.display='block'; return; }
-  var btn=document.getElementById('loginBtn'); btn.textContent='Memproses...'; btn.disabled=true;
-  gsr('login',u,p).then(function(res) {
-    btn.textContent='Masuk'; btn.disabled=false;
-    if(!res||!res.ok){ err.textContent=(res&&res.error)||'Login gagal'; err.style.display='block'; return; }
-    STATE.token=res.token; STATE.user={userId:res.userId,username:res.username,name:res.name,role:res.role};
-    localStorage.setItem('ea_token',res.token); localStorage.setItem('ea_user',JSON.stringify(STATE.user));
-    afterLogin();
-  }).catch(function(e){ btn.textContent='Masuk'; btn.disabled=false; err.textContent='Error: '+(e.message||e); err.style.display='block'; });
-}
-
-function afterLogin() {
-  var u=STATE.user;
-  document.getElementById('navAdmin').style.display='block';
-  document.getElementById('navPublic').style.display='none';
-  document.getElementById('sideUserInfo').style.display='block';
-  document.getElementById('logoutBtn').style.display='block';
-  document.getElementById('sideUserName').textContent=u.name;
-  document.getElementById('sideUserRole').textContent=u.role==='admin'?'Administrator':'Guru';
-  if(u.role==='admin'){
-    document.getElementById('navUsers').style.display='flex';
-    document.getElementById('navConfig').style.display='flex';
-    document.getElementById('navReset').style.display='flex';
+  ['public','login'].forEach(function(p){
+    var el = document.getElementById('page-'+p);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('admin-area').style.display = 'none';
+  if (name === 'public') {
+    document.getElementById('page-public').style.display = 'flex';
+  } else if (name === 'login') {
+    document.getElementById('page-login').style.display = 'flex';
   }
-  showPage('dashboard');
-  gsr('getClasses').then(function(cs){ STATE.classes=cs||[]; });
-  gsr('getProfiles',STATE.token).then(function(ps){ STATE.profiles=ps||[]; });
+}
+
+function showLoginPage() { showPage('login'); }
+
+function showAdminPage(name) {
+  document.querySelectorAll('#admin-area .page').forEach(function(p){ p.style.display = 'none'; });
+  var el = document.getElementById('page-' + name);
+  if (el) el.style.display = 'block';
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    if (b.getAttribute('onclick') === "showAdminPage('"+name+"')") b.classList.add('active');
+  });
+  G.currentAdminPage = name;
+  loadAdminPage(name);
+}
+
+function showAdmin() {
+  showPage('_admin');
+  document.getElementById('admin-area').style.display = 'block';
+  if (G.user && G.user.role === 'admin') {
+    document.getElementById('tabUsers').style.display = 'block';
+    document.getElementById('tabConfig').style.display = 'block';
+    document.getElementById('tabReset').style.display = 'block';
+  }
+  document.getElementById('userInfoBlock').style.display = 'block';
+  document.getElementById('headerUserName').textContent = G.user ? G.user.name : '';
+  document.getElementById('headerUserRole').textContent = G.user ? G.user.role : '';
+  applyConfig();
+  showAdminPage('dashboard');
+}
+
+function applyConfig() {
+  var c = G.config || {};
+  if (c.app_title) {
+    document.getElementById('pubTitle').textContent = c.app_title;
+    document.title = c.app_title;
+  }
+  if (c.app_subtitle) document.getElementById('pubSub').textContent = c.app_subtitle;
+  if (c.school_name) document.getElementById('adminSchoolName').textContent = c.school_name;
+  if (c.logo_url) {
+    var img = '<img src="'+c.logo_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    ['pubLogoWrap','adminLogoWrap','loginLogoWrap'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = img;
+    });
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  var savedToken = sessionStorage.getItem('as_token');
+  var savedUser  = sessionStorage.getItem('as_user');
+  if (savedToken && savedUser) {
+    try {
+      G.token = savedToken;
+      G.user  = JSON.parse(savedUser);
+    } catch(e) {}
+  }
+  showPage('public');
+  loadPublicData();
+};
+
+function loadPublicData() {
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (!data) {
+        showPubError('Gagal memuat data. Pastikan Spreadsheet sudah di-setup (jalankan setupSheets() di Apps Script).');
+        return;
+      }
+      G.config   = data.config   || G.config;
+      G.classes  = data.classes  || [];
+      G.holidays = data.holidays || [];
+      G.settings = data.settings || [];
+      applyConfig();
+      renderPublicForm();
+      if (G.token) {
+        google.script.run
+          .withSuccessHandler(function(sess) {
+            if (sess) { G.user = sess; showAdmin(); }
+          })
+          .withFailureHandler(function(){})
+          .checkSession(G.token);
+      }
+    })
+    .withFailureHandler(function(err) {
+      showPubError('Gagal memuat: ' + (err && err.message ? err.message : String(err)));
+    })
+    .getPublicData();
+}
+
+function showPubError(msg) {
+  document.getElementById('pubContent').innerHTML =
+    '<div style="text-align:center;padding:20px;color:#ef4444;font-size:13px;font-weight:600">⚠️ '+msg+'</div>';
+}
+
+// ============================================================
+// PUBLIC FORM
+// ============================================================
+function renderPublicForm() {
+  var today = TODAY;
+  var isHoliday = G.holidays.some(function(h){ return h.start_date <= today && today <= h.end_date; });
+  var dayName = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][new Date().getDay()];
+  var daySetting = G.settings.find(function(s){ return s.day_of_week === dayName; });
+  if (isHoliday) {
+    var hol = G.holidays.find(function(h){ return h.start_date <= today && today <= h.end_date; });
+    document.getElementById('pubContent').innerHTML =
+      '<div style="text-align:center;padding:20px"><div style="font-size:48px;margin-bottom:12px">🏖️</div><p style="font-weight:700;color:#0f172a;font-size:15px">Hari Libur</p><p style="color:#64748b;font-size:13px;margin-top:4px">'+(hol?hol.name:'')+'</p></div>';
+    return;
+  }
+  if (daySetting && !daySetting.enabled) {
+    document.getElementById('pubContent').innerHTML =
+      '<div style="text-align:center;padding:20px"><div style="font-size:48px;margin-bottom:12px">📅</div><p style="font-weight:700;color:#0f172a;font-size:15px">Tidak ada absensi hari '+dayName+'</p></div>';
+    return;
+  }
+  var classOpts = G.classes.map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; }).join('');
+  document.getElementById('pubContent').innerHTML =
+    '<div style="font-size:12px;color:#64748b;margin-bottom:16px;text-align:center">'+dayName+', '+formatDate(today)+'</div>'+
+    '<div class="form-row"><label class="label">Kelas</label><select id="pubClass" class="select"><option value="">-- Pilih Kelas --</option>'+classOpts+'</select></div>'+
+    '<div class="form-row"><label class="label">NIS Siswa</label><input id="pubNis" class="input" placeholder="Masukkan NIS siswa"></div>'+
+    '<div class="form-row"><label class="label">Status</label>'+
+    '<select id="pubStatus" class="select" onchange="togglePubNotes()">'+
+    '<option value="hadir">✅ Hadir</option>'+
+    '<option value="izin">📋 Izin</option>'+
+    '<option value="sakit">🤒 Sakit</option>'+
+    '<option value="alpa">❌ Alpa</option>'+
+    '</select></div>'+
+    '<div id="pubNotesRow" class="form-row" style="display:none"><label class="label">Keterangan</label><textarea id="pubNotes" class="input" placeholder="Keterangan izin/sakit"></textarea></div>'+
+    '<button class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;border-radius:12px" id="pubSubmitBtn" onclick="submitAbsensi()">Kirim Absensi</button>'+
+    '<div id="pubMsg" style="margin-top:12px;font-size:12px;text-align:center"></div>';
+}
+
+function togglePubNotes() {
+  var s = document.getElementById('pubStatus');
+  if (!s) return;
+  var show = s.value === 'izin' || s.value === 'sakit';
+  document.getElementById('pubNotesRow').style.display = show ? 'block' : 'none';
+}
+
+function submitAbsensi() {
+  var classId = (document.getElementById('pubClass')||{}).value;
+  var nis     = (document.getElementById('pubNis')||{}).value.trim();
+  var status  = (document.getElementById('pubStatus')||{}).value;
+  var notes   = (document.getElementById('pubNotes')||{}).value||'';
+  if (!classId) { toast('Pilih kelas terlebih dahulu','error'); return; }
+  if (!nis)     { toast('Masukkan NIS siswa','error'); return; }
+  var btn = document.getElementById('pubSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  google.script.run
+    .withSuccessHandler(function(lookupRes) {
+      if (!lookupRes || !lookupRes.student) {
+        btn.disabled = false; btn.textContent = 'Kirim Absensi';
+        toast('Siswa dengan NIS "'+nis+'" tidak ditemukan','error'); return;
+      }
+      if (lookupRes.attendance) {
+        btn.disabled = false; btn.textContent = 'Kirim Absensi';
+        toast('Absensi siswa ini sudah tercatat hari ini','error'); return;
+      }
+      var rec = { student_id: lookupRes.student.id, class_id: classId, date: TODAY, status: status, notes: notes };
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false; btn.textContent = 'Kirim Absensi';
+          if (r && r.ok) {
+            toast('Absensi berhasil disimpan!','success');
+            document.getElementById('pubMsg').innerHTML = '<span style="color:#10b981;font-weight:700">✅ Absensi berhasil dicatat untuk '+lookupRes.student.name+'!</span>';
+            setTimeout(function(){ document.getElementById('pubMsg').innerHTML=''; },5000);
+          } else { toast((r&&r.error)||'Gagal menyimpan','error'); }
+        })
+        .withFailureHandler(function(e){ btn.disabled=false;btn.textContent='Kirim Absensi';toast('Error: '+(e&&e.message?e.message:e),'error'); })
+        .createAttendance([rec], null);
+    })
+    .withFailureHandler(function(e){ btn.disabled=false;btn.textContent='Kirim Absensi';toast('Error: '+(e&&e.message?e.message:e),'error'); })
+    .scanLookup(nis, TODAY);
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function togglePwd() {
+  var inp = document.getElementById('loginPass');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function doLogin() {
+  var u = document.getElementById('loginUser').value.trim();
+  var p = document.getElementById('loginPass').value;
+  var errEl = document.getElementById('loginErr');
+  var btn   = document.getElementById('loginBtn');
+  errEl.style.display = 'none';
+  if (!u || !p) { errEl.textContent = 'Username dan password wajib diisi'; errEl.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Masuk...';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled = false; btn.textContent = 'Masuk';
+      if (res && res.ok) {
+        G.token = res.token;
+        G.user  = { userId: res.userId, username: res.username, name: res.name, role: res.role };
+        sessionStorage.setItem('as_token', G.token);
+        sessionStorage.setItem('as_user', JSON.stringify(G.user));
+        showAdmin();
+      } else {
+        errEl.textContent = (res && res.error) || 'Login gagal';
+        errEl.style.display = 'block';
+      }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.textContent = 'Masuk';
+      errEl.textContent = 'Error: ' + (err && err.message ? err.message : String(err));
+      errEl.style.display = 'block';
+    })
+    .login(u, p);
 }
 
 function doLogout() {
-  if(STATE.token) gsr('logout',STATE.token).catch(function(){});
-  STATE.token=null; STATE.user=null;
-  localStorage.removeItem('ea_token'); localStorage.removeItem('ea_user');
-  document.getElementById('navAdmin').style.display='none';
-  document.getElementById('navPublic').style.display='block';
-  document.getElementById('sideUserInfo').style.display='none';
-  document.getElementById('logoutBtn').style.display='none';
-  document.getElementById('navUsers').style.display='none';
-  document.getElementById('navConfig').style.display='none';
-  document.getElementById('navReset').style.display='none';
-  showPage('login');
-}
-
-// ====================================================================
-// INIT
-// ====================================================================
-function init() {
-  var su=localStorage.getItem('ea_user');
-  if(STATE.token && su){
-    try{ STATE.user=JSON.parse(su); }catch(e){}
-    gsr('checkSession',STATE.token).then(function(sess){
-      if(sess){ STATE.user=sess; afterLogin(); }
-      else{ STATE.token=null; localStorage.removeItem('ea_token'); loadPublicPage(); }
-    }).catch(function(){ loadPublicPage(); });
-  } else { loadPublicPage(); }
-}
-
-// ====================================================================
-// PUBLIC FORM
-// ====================================================================
-var PD={config:{},classes:[],holidays:[],settings:[],students:[]};
-
-function loadPublicPage() {
+  if (G.token) google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).logout(G.token);
+  G.token = null; G.user = null;
+  sessionStorage.removeItem('as_token'); sessionStorage.removeItem('as_user');
   showPage('public');
-  gsr('getPublicData').then(function(data) {
-    PD.config=data.config||{}; PD.classes=data.classes||[]; PD.holidays=data.holidays||[]; PD.settings=data.settings||[];
-    document.getElementById('sideTitle').textContent=PD.config.app_title||'E-ABSENSI';
-    document.getElementById('sideSub').textContent=PD.config.app_subtitle||'Sistem Absensi';
-    document.getElementById('pubTitle').textContent=PD.config.app_title||'E-ABSENSI';
-    document.getElementById('pubSub').textContent=PD.config.app_subtitle||'Sistem Absensi Sekolah';
-    if(PD.config.logo_url){
-      var src=gdriveUrl(PD.config.logo_url);
-      document.getElementById('pubLogoWrap').innerHTML='<img src="'+src+'" style="width:68px;height:68px;object-fit:contain;border-radius:50%" onerror="this.parentNode.innerHTML=\'🎓\'">';
-    }
-    renderPublicForm();
-  }).catch(function(e){ document.getElementById('pubContent').innerHTML='<p style="color:#ef4444;text-align:center">Gagal memuat: '+(e.message||e)+'</p>'; });
 }
 
-function renderPublicForm() {
-  var today=new Date(), todayS=fmt(today);
-  var dayNames=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'], dayName=dayNames[today.getDay()];
-  var setting=PD.settings.find(function(s){return s.day_of_week===dayName;});
-  var enabled=setting?!!setting.enabled:false;
-  var holiday=PD.holidays.find(function(h){return todayS>=h.start_date&&todayS<=h.end_date;});
-  var isWeekend=today.getDay()===0||today.getDay()===6;
-  var c=document.getElementById('pubContent');
-  if(holiday){
-    c.innerHTML='<div style="text-align:center;padding:16px">'
-      +'<div style="font-size:48px;margin-bottom:12px">📅</div>'
-      +'<p style="font-size:15px;font-weight:700;color:#0f172a">'+esc(holiday.name)+'</p>'
-      +'<p style="font-size:12px;color:#64748b;margin-top:6px">Tidak dapat mengirim laporan absensi hari ini.</p></div>';
-  } else if(!enabled){
-    c.innerHTML='<div style="text-align:center;padding:16px">'
-      +'<div style="font-size:48px;margin-bottom:12px">'+(isWeekend?'🏖':'⏸')+'</div>'
-      +'<p style="font-size:15px;font-weight:700;color:#0f172a">'+(isWeekend?'Hari Libur':'Absensi Belum Aktif')+'</p>'
-      +'<p style="font-size:12px;color:#64748b;margin-top:6px">Absensi hari <b>'+dayName+'</b> belum diaktifkan.</p></div>';
-  } else {
-    c.innerHTML=
-      '<div class="form-row"><label class="label">Pilih Kelas</label>'
-      +'<select id="pubClass" class="select" style="font-size:13px;padding:10px 32px 10px 12px" onchange="pubLoadStudents()"><option value="">Pilih kelas...</option>'
-      +PD.classes.map(function(cl){return '<option value="'+cl.id+'">'+esc(cl.name)+'</option>';}).join('')
-      +'</select></div>'
-      +'<div class="form-row"><label class="label">Pilih Siswa</label>'
-      +'<select id="pubStudent" class="select" style="font-size:13px;padding:10px 32px 10px 12px" onchange="pubCheckExisting()"><option value="">Pilih kelas dulu...</option></select></div>'
-      +'<div class="form-row"><label class="label">Status</label>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-      +'<button id="btnIzin" onclick="pubSetStatus(\'izin\')" class="_psbtn" style="padding:10px;border-radius:12px;border:2px solid #3b82f6;background:#dbeafe;color:#1e40af;font-weight:700;font-size:13px;cursor:pointer">📋 Izin</button>'
-      +'<button id="btnSakit" onclick="pubSetStatus(\'sakit\')" class="_psbtn" style="padding:10px;border-radius:12px;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;font-weight:700;font-size:13px;cursor:pointer">🤒 Sakit</button>'
-      +'</div></div>'
-      +'<div class="form-row"><label class="label">Keterangan — opsional</label>'
-      +'<textarea id="pubNotes" class="input" rows="2" placeholder="Tulis keterangan jika ada..."></textarea></div>'
-      +'<div id="pubAlertBox"></div>'
-      +'<button onclick="pubSubmit()" id="pubSubmitBtn" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;border-radius:12px">✉ Kirim Laporan</button>';
-    window._pubStatus='izin';
+// ============================================================
+// LOAD ADMIN PAGES
+// ============================================================
+function loadAdminPage(name) {
+  var fns = {
+    'dashboard':    function(){ initDashboard(); },
+    'scan':         function(){ /* scan already set up */ },
+    'history':      function(){ initHistory(); },
+    'validation':   function(){ initValidation(); },
+    'rekap':        function(){ initRekap(); },
+    'whatsapp':     function(){ initWA(); },
+    'classes':      function(){ loadClasses(); },
+    'students':     function(){ initStudents(); },
+    'holidays':     function(){ loadHolidays(); },
+    'att-settings': function(){ loadAttSettings(); },
+    'piket':        function(){ loadPiket(); },
+    'users':        function(){ loadUsers(); },
+    'webconfig':    function(){ loadWebConfig(); },
+    'reset':        function(){ /* static */ }
+  };
+  if (fns[name]) fns[name]();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function formatDate(d) {
+  if (!d) return '';
+  var parts = String(d).split('-');
+  if (parts.length < 3) return d;
+  var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return parseInt(parts[2]) + ' ' + months[parseInt(parts[1])-1] + ' ' + parts[0];
+}
+function badgeStatus(s) {
+  var labels = { hadir:'Hadir', izin:'Izin', sakit:'Sakit', alpa:'Alpa' };
+  return '<span class="badge badge-'+s+'">'+(labels[s]||s)+'</span>';
+}
+function badgeVal(v) {
+  var labels = { pending:'Pending', approved:'Approved', rejected:'Ditolak' };
+  return '<span class="badge badge-'+(v||'pending')+'">'+(labels[v]||v||'-')+'</span>';
+}
+function className(id) {
+  var c = G.classes.find(function(x){ return x.id === id; });
+  return c ? c.name : id || '-';
+}
+function gs(fn) { return google.script.run.withFailureHandler(function(e){ toast('Error: '+(e&&e.message?e.message:e),'error'); })[fn]; }
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function initDashboard() {
+  document.getElementById('dashDate').value = TODAY;
+  document.getElementById('dashYear').value = new Date().getFullYear();
+  loadDashboard();
+  loadYearlyChart();
+}
+function loadDashboard() {
+  var date = document.getElementById('dashDate').value || TODAY;
+  google.script.run
+    .withSuccessHandler(function(s) {
+      if (!s) return;
+      document.getElementById('dsTotalSiswa').textContent = s.total_students;
+      document.getElementById('dsHadir').textContent = s.hadir;
+      document.getElementById('dsIzin').textContent  = s.izin;
+      document.getElementById('dsSakit').textContent = s.sakit;
+      document.getElementById('dsAlpa').textContent  = s.alpa;
+      document.getElementById('dsPending').textContent = s.pending_validation;
+    })
+    .withFailureHandler(function(){})
+    .getDashboardStats(G.token, date);
+}
+function loadYearlyChart() {
+  var year = parseInt(document.getElementById('dashYear').value) || new Date().getFullYear();
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (!data || data.error) return;
+      var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+      var hadir=[],izin=[],sakit=[],alpa=[];
+      for(var m=1;m<=12;m++){
+        var d=data.monthly[m]||{};
+        hadir.push(d.hadir||0);izin.push(d.izin||0);sakit.push(d.sakit||0);alpa.push(d.alpa||0);
+      }
+      var ctx = document.getElementById('yearlyChart').getContext('2d');
+      if (G.yearlyChartObj) G.yearlyChartObj.destroy();
+      G.yearlyChartObj = new Chart(ctx, {
+        type:'bar',
+        data:{ labels:months, datasets:[
+          {label:'Hadir',data:hadir,backgroundColor:'#10b981'},
+          {label:'Izin', data:izin, backgroundColor:'#3b82f6'},
+          {label:'Sakit',data:sakit,backgroundColor:'#f59e0b'},
+          {label:'Alpa', data:alpa, backgroundColor:'#ef4444'}
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{x:{stacked:true},y:{stacked:true}} }
+      });
+    })
+    .withFailureHandler(function(){})
+    .getYearlyStats(G.token, year);
+}
+
+// ============================================================
+// SCAN QR
+// ============================================================
+function startScan() {
+  document.getElementById('startScanBtn').style.display = 'none';
+  document.getElementById('stopScanBtn').style.display  = 'block';
+  G.qrScanner = new Html5Qrcode('qr-reader');
+  G.qrScanner.start({ facingMode:'environment' }, { fps:10, qrbox:220 },
+    function(decoded) { stopScan(); handleScanResult(decoded); },
+    function(err){}
+  ).catch(function(e){ toast('Kamera tidak dapat dibuka: '+e,'error'); stopScan(); });
+}
+function stopScan() {
+  if (G.qrScanner) { try { G.qrScanner.stop(); } catch(e){} G.qrScanner = null; }
+  document.getElementById('startScanBtn').style.display = 'block';
+  document.getElementById('stopScanBtn').style.display  = 'none';
+}
+function lookupByNis() { handleScanResult(document.getElementById('manualNis').value.trim()); }
+function handleScanResult(q) {
+  if (!q) return;
+  google.script.run
+    .withSuccessHandler(function(res) {
+      var box = document.getElementById('scanResult');
+      if (!res || !res.student) {
+        box.innerHTML = '<div style="text-align:center;color:#ef4444"><div style="font-size:48px">❌</div><p style="font-weight:700;margin-top:8px">Siswa tidak ditemukan</p><p style="font-size:12px;color:#64748b">'+q+'</p></div>'; return;
+      }
+      var st = res.student;
+      if (res.attendance) {
+        box.innerHTML = '<div style="text-align:center"><div style="font-size:48px;margin-bottom:12px">ℹ️</div><p style="font-weight:800;font-size:15px">'+st.name+'</p><p style="font-size:12px;color:#64748b">'+className(st.class_id)+'</p><p style="margin-top:8px">'+badgeStatus(res.attendance.status)+'</p><p style="font-size:11px;color:#64748b;margin-top:6px">Sudah tercatat</p></div>'; return;
+      }
+      box.innerHTML =
+        '<div style="text-align:center;margin-bottom:16px"><div style="font-size:40px;margin-bottom:8px">👨‍🎓</div><p style="font-weight:800;font-size:15px">'+st.name+'</p><p style="font-size:12px;color:#64748b">'+className(st.class_id)+' | NIS: '+st.nis+'</p></div>'+
+        '<div class="form-row"><label class="label">Status</label>'+
+        '<select id="scanStatus" class="select" style="font-size:13px">'+
+        '<option value="hadir">✅ Hadir</option><option value="izin">📋 Izin</option><option value="sakit">🤒 Sakit</option><option value="alpa">❌ Alpa</option>'+
+        '</select></div>'+
+        '<div class="form-row"><label class="label">Keterangan (opsional)</label><input id="scanNotes" class="input" placeholder="..."></div>'+
+        '<button class="btn btn-primary" style="width:100%" onclick="saveScanAttendance(\''+st.id+'\',\''+st.class_id+'\',\''+st.name+'\')">💾 Simpan Absensi</button>';
+    })
+    .withFailureHandler(function(e){ toast('Error: '+e,'error'); })
+    .scanLookup(q, TODAY);
+}
+function saveScanAttendance(studentId, classId, name) {
+  var status = document.getElementById('scanStatus').value;
+  var notes  = document.getElementById('scanNotes').value || '';
+  var rec = { student_id: studentId, class_id: classId, date: TODAY, status: status, notes: notes };
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r && r.ok) {
+        toast('Absensi '+name+' berhasil dicatat!','success');
+        document.getElementById('scanResult').innerHTML = '<div style="text-align:center"><div style="font-size:48px;margin-bottom:12px">✅</div><p style="font-weight:800;font-size:15px;color:#10b981">Berhasil!</p><p style="font-size:13px;color:#374151">'+name+'</p><p>'+badgeStatus(status)+'</p></div>';
+      } else { toast((r&&r.error)||'Gagal','error'); }
+    })
+    .withFailureHandler(function(e){ toast('Error: '+e,'error'); })
+    .createAttendance([rec], G.token);
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function initHistory() {
+  document.getElementById('histDate').value = TODAY;
+  populateClassSelect('histClass', true);
+}
+function loadHistory() {
+  var date = document.getElementById('histDate').value;
+  var cls  = document.getElementById('histClass').value;
+  document.getElementById('histLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('histLoading').style.display = 'none';
+      var students = {};
+      google.script.run
+        .withSuccessHandler(function(sts) {
+          sts.forEach(function(s){ students[s.id]=s; });
+          renderHistoryTable(rows, students);
+        })
+        .withFailureHandler(function(){ renderHistoryTable(rows,{}); })
+        .getStudents(cls||null, null, null);
+    })
+    .withFailureHandler(function(e){ document.getElementById('histLoading').style.display='none';toast('Error','error'); })
+    .getAttendance({ date: date||null, classId: cls||null });
+}
+function renderHistoryTable(rows, students) {
+  var html = rows.map(function(r) {
+    var st = students[r.student_id] || {};
+    return '<tr>'+
+      '<td>'+(st.name||r.student_id||'-')+'</td>'+
+      '<td>'+className(r.class_id)+'</td>'+
+      '<td>'+formatDate(r.date)+'</td>'+
+      '<td>'+badgeStatus(r.status)+'</td>'+
+      '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">'+(r.notes||'-')+'</td>'+
+      '<td>'+badgeVal(r.validation_status)+'</td>'+
+      '<td><button class="btn btn-danger btn-sm" onclick="deleteAbsensi(\''+r.id+'\')">🗑</button></td>'+
+      '</tr>';
+  }).join('');
+  document.getElementById('histBody').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">Tidak ada data</td></tr>';
+}
+function deleteAbsensi(id) {
+  if (!confirm('Hapus data absensi ini?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Dihapus','success');loadHistory();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(e){ toast('Error','error'); })
+    .deleteAttendance(G.token, id);
+}
+
+// ============================================================
+// VALIDASI
+// ============================================================
+function initValidation() {
+  document.getElementById('valDate').value = TODAY;
+  populateClassSelect('valClass', true);
+}
+function loadValidation() {
+  var date   = document.getElementById('valDate').value;
+  var cls    = document.getElementById('valClass').value;
+  var valSt  = document.getElementById('valStatus').value;
+  document.getElementById('valLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('valLoading').style.display = 'none';
+      google.script.run
+        .withSuccessHandler(function(sts) {
+          var students = {};
+          sts.forEach(function(s){ students[s.id]=s; });
+          var html = rows.map(function(r) {
+            var st = students[r.student_id]||{};
+            return '<tr>'+
+              '<td>'+(st.name||'-')+'</td>'+
+              '<td>'+className(r.class_id)+'</td>'+
+              '<td>'+formatDate(r.date)+'</td>'+
+              '<td>'+badgeStatus(r.status)+'</td>'+
+              '<td>'+(r.notes||'-')+'</td>'+
+              '<td>'+badgeVal(r.validation_status)+'</td>'+
+              '<td style="display:flex;gap:4px;flex-wrap:wrap">'+
+              '<button class="btn btn-green btn-sm" onclick="validateAtt(\''+r.id+'\',\'approved\')">✅</button>'+
+              '<button class="btn btn-danger btn-sm" onclick="validateAtt(\''+r.id+'\',\'rejected\')">❌</button>'+
+              '</td></tr>';
+          }).join('');
+          document.getElementById('valBody').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">Tidak ada data</td></tr>';
+        })
+        .withFailureHandler(function(){})
+        .getStudents(cls||null,null,null);
+    })
+    .withFailureHandler(function(){ document.getElementById('valLoading').style.display='none'; })
+    .getAttendance({ date:date||null, classId:cls||null, validationStatus:valSt||null, status:valSt?['izin','sakit']:null });
+}
+function validateAtt(id, status) {
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Validasi disimpan','success');loadValidation();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .updateAttendance(G.token, id, { validation_status: status, validated_by: G.user?G.user.userId:'' });
+}
+
+// ============================================================
+// REKAP BULANAN
+// ============================================================
+function initRekap() {
+  document.getElementById('rekapYear').value = new Date().getFullYear();
+  document.getElementById('rekapMonth').value = new Date().getMonth()+1;
+  populateClassSelect('rekapClass', false);
+}
+function loadRekap() {
+  var cls   = document.getElementById('rekapClass').value;
+  var year  = parseInt(document.getElementById('rekapYear').value);
+  var month = parseInt(document.getElementById('rekapMonth').value);
+  if (!cls)  { toast('Pilih kelas','error'); return; }
+  if (!year) { toast('Masukkan tahun','error'); return; }
+  document.getElementById('rekapResult').innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res||!res.ok) { document.getElementById('rekapResult').innerHTML='<p style="color:#ef4444;padding:20px">'+((res&&res.error)||'Gagal')+'</p>'; return; }
+      var days = res.daysInMonth;
+      var header = '<th>Nama</th>';
+      for(var d=1;d<=days;d++) header += '<th>'+d+'</th>';
+      header += '<th>H</th><th>I</th><th>S</th><th>A</th>';
+      var rows = res.data.map(function(item) {
+        var cells = '';
+        for(var d=1;d<=days;d++){
+          var s=item.attendance[d]||'';
+          var color={hadir:'#10b981',izin:'#3b82f6',sakit:'#f59e0b',alpa:'#ef4444'}[s]||'#cbd5e1';
+          var label={hadir:'H',izin:'I',sakit:'S',alpa:'A'}[s]||'';
+          cells += '<td style="text-align:center;color:'+color+';font-weight:700">'+label+'</td>';
+        }
+        return '<tr><td style="white-space:nowrap">'+item.student.name+'</td>'+cells+
+          '<td style="color:#10b981;font-weight:700;text-align:center">'+item.hadir+'</td>'+
+          '<td style="color:#3b82f6;font-weight:700;text-align:center">'+item.izin+'</td>'+
+          '<td style="color:#f59e0b;font-weight:700;text-align:center">'+item.sakit+'</td>'+
+          '<td style="color:#ef4444;font-weight:700;text-align:center">'+item.alpa+'</td></tr>';
+      }).join('');
+      document.getElementById('rekapResult').innerHTML =
+        '<div class="table-wrap"><table><thead><tr>'+header+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    })
+    .withFailureHandler(function(e){ document.getElementById('rekapResult').innerHTML='<p style="color:#ef4444;padding:20px">Error: '+(e&&e.message?e.message:e)+'</p>'; })
+    .getRekapBulanan(G.token, cls, year, month);
+}
+
+// ============================================================
+// WHATSAPP
+// ============================================================
+function initWA() {
+  document.getElementById('waDate').value = TODAY;
+  var list = document.getElementById('waClassList');
+  list.innerHTML = G.classes.map(function(c){
+    return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">'+
+      '<input type="checkbox" value="'+c.id+'" style="accent-color:#7c3aed">'+c.name+'</label>';
+  }).join('');
+}
+function getSelectedWAClasses() {
+  return Array.from(document.querySelectorAll('#waClassList input:checked')).map(function(i){ return i.value; });
+}
+function previewWA() {
+  var date = document.getElementById('waDate').value;
+  var ids  = getSelectedWAClasses();
+  if (!ids.length) { toast('Pilih minimal satu kelas','error'); return; }
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok) document.getElementById('waPreview').textContent=r.message; else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(e){ toast('Error','error'); })
+    .buildWAMessage(G.token, ids, date);
+}
+function sendWA() {
+  var date = document.getElementById('waDate').value;
+  var ids  = getSelectedWAClasses();
+  if (!ids.length) { toast('Pilih minimal satu kelas','error'); return; }
+  if (!confirm('Kirim laporan WhatsApp?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok) toast('WhatsApp berhasil dikirim!','success'); else toast((r&&r.error)||'Gagal','error'); })
+    .withFailureHandler(function(e){ toast('Error: '+(e&&e.message?e.message:e),'error'); })
+    .sendWhatsApp(G.token, ids, date);
+}
+
+// ============================================================
+// CLASSES
+// ============================================================
+function loadClasses() {
+  document.getElementById('classLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('classLoading').style.display = 'none';
+      G.classes = rows;
+      var html = rows.map(function(c){
+        return '<tr>'+
+          '<td style="font-weight:600">'+c.name+'</td>'+
+          '<td>'+(c.wali_kelas||'-')+'</td>'+
+          '<td>'+(c.wali_kelas_nip||'-')+'</td>'+
+          '<td>'+(c.wa_group_id||'-')+'</td>'+
+          '<td style="display:flex;gap:4px">'+
+          '<button class="btn btn-outline btn-sm" onclick="showEditClassModal(\''+c.id+'\',\''+c.name+'\',\''+c.wali_kelas+'\',\''+c.wali_kelas_nip+'\',\''+c.wa_group_id+'\')">✏️</button>'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteClass(\''+c.id+'\')">🗑</button>'+
+          '</td></tr>';
+      }).join('');
+      document.getElementById('classBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">Belum ada kelas</td></tr>';
+    })
+    .withFailureHandler(function(){ document.getElementById('classLoading').style.display='none'; })
+    .getClasses();
+}
+function showAddClassModal() {
+  openModal('Tambah Kelas',
+    '<div class="form-row"><label class="label">Nama Kelas</label><input id="mClassName" class="input" placeholder="Contoh: 7A"></div>'+
+    '<div class="form-row"><label class="label">Wali Kelas</label><input id="mClassWali" class="input" placeholder="Nama wali kelas"></div>'+
+    '<div class="form-row"><label class="label">NIP</label><input id="mClassNip" class="input" placeholder="NIP wali kelas"></div>'+
+    '<div class="form-row"><label class="label">WA Group ID</label><input id="mClassWa" class="input" placeholder="ID grup WhatsApp"></div>',
+    'Simpan', function(){
+      var name = document.getElementById('mClassName').value.trim();
+      if (!name) { toast('Nama kelas wajib diisi','error'); return; }
+      google.script.run
+        .withSuccessHandler(function(r){
+          if(r&&r.ok){
+            closeModal(); toast('Kelas berhasil ditambahkan','success');
+            updateClassIfNeeded(r.id, {wali_kelas:document.getElementById('mClassWali').value, wali_kelas_nip:document.getElementById('mClassNip').value, wa_group_id:document.getElementById('mClassWa').value});
+            loadClasses();
+          } else toast(r&&r.error,'error');
+        })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .createClass(G.token, name);
+    }
+  );
+}
+function updateClassIfNeeded(id, data) {
+  if (data.wali_kelas || data.wali_kelas_nip || data.wa_group_id) {
+    google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).updateClass(G.token, id, data);
   }
 }
-
-function pubSetStatus(s){
-  window._pubStatus=s;
-  var bi=document.getElementById('btnIzin'),bs=document.getElementById('btnSakit');
-  if(!bi||!bs) return;
-  if(s==='izin'){bi.style.cssText='padding:10px;border-radius:12px;border:2px solid #3b82f6;background:#dbeafe;color:#1e40af;font-weight:700;font-size:13px;cursor:pointer';bs.style.cssText='padding:10px;border-radius:12px;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;font-weight:700;font-size:13px;cursor:pointer';}
-  else{bs.style.cssText='padding:10px;border-radius:12px;border:2px solid #f59e0b;background:#fef9c3;color:#854d0e;font-weight:700;font-size:13px;cursor:pointer';bi.style.cssText='padding:10px;border-radius:12px;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;font-weight:700;font-size:13px;cursor:pointer';}
+function showEditClassModal(id, name, wali, nip, wa) {
+  openModal('Edit Kelas',
+    '<div class="form-row"><label class="label">Nama Kelas</label><input id="mClassName" class="input" value="'+name+'"></div>'+
+    '<div class="form-row"><label class="label">Wali Kelas</label><input id="mClassWali" class="input" value="'+(wali||'')+'"></div>'+
+    '<div class="form-row"><label class="label">NIP</label><input id="mClassNip" class="input" value="'+(nip||'')+'"></div>'+
+    '<div class="form-row"><label class="label">WA Group ID</label><input id="mClassWa" class="input" value="'+(wa||'')+'"></div>',
+    'Simpan', function(){
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('Disimpan','success');loadClasses();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .updateClass(G.token, id, {
+          name: document.getElementById('mClassName').value,
+          wali_kelas: document.getElementById('mClassWali').value,
+          wali_kelas_nip: document.getElementById('mClassNip').value,
+          wa_group_id: document.getElementById('mClassWa').value
+        });
+    }
+  );
+}
+function deleteClass(id) {
+  if (!confirm('Hapus kelas ini?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Dihapus','success');loadClasses();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .deleteClass(G.token, id);
 }
 
-function pubLoadStudents(){
-  var cid=document.getElementById('pubClass').value,sel=document.getElementById('pubStudent');
-  sel.innerHTML='<option value="">Memuat...</option>';
-  if(!cid){sel.innerHTML='<option value="">Pilih kelas dulu...</option>';return;}
-  gsr('getStudents',cid,null,null).then(function(students){
-    PD.students=students||[];
-    sel.innerHTML='<option value="">Pilih siswa...</option>'+students.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+(s.nis?' ('+s.nis+')':'')+'</option>';}).join('');
-  });
-}
-
-function pubCheckExisting(){
-  var sid=document.getElementById('pubStudent').value,al=document.getElementById('pubAlertBox');
-  al.innerHTML=''; if(!sid) return;
-  gsr('getExistingAttendance',sid,todayStr()).then(function(recs){
-    var hadir=(recs||[]).find(function(r){return r.status==='hadir';});
-    var izinSakit=(recs||[]).find(function(r){return(r.status==='izin'||r.status==='sakit')&&r.validation_status!=='rejected';});
-    if(hadir) al.innerHTML='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px;color:#dc2626;font-weight:600">⚠ Siswa sudah tercatat HADIR hari ini.</div>';
-    else if(izinSakit) al.innerHTML='<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px;color:#854d0e;font-weight:600">⚠ Sudah mengirim laporan '+izinSakit.status+'. Menunggu validasi.</div>';
-  });
-}
-
-function pubSubmit(){
-  var cid=document.getElementById('pubClass').value, sid=document.getElementById('pubStudent').value;
-  var notes=document.getElementById('pubNotes').value.trim(), status=window._pubStatus||'izin';
-  var al=document.getElementById('pubAlertBox');
-  if(!cid||!sid){al.innerHTML='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px;color:#dc2626">Pilih kelas dan siswa terlebih dahulu.</div>';return;}
-  var btn=document.getElementById('pubSubmitBtn'); btn.textContent='Mengirim...'; btn.disabled=true;
-  gsr('getExistingAttendance',sid,todayStr()).then(function(recs){
-    var hadir=(recs||[]).find(function(r){return r.status==='hadir';});
-    var izinSakit=(recs||[]).find(function(r){return(r.status==='izin'||r.status==='sakit')&&r.validation_status!=='rejected';});
-    if(hadir||izinSakit){btn.textContent='Kirim Laporan';btn.disabled=false;al.innerHTML='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px;color:#dc2626">Absensi sudah tercatat hari ini.</div>';return;}
-    return gsr('createAttendance',[{student_id:sid,class_id:cid,date:todayStr(),status:status,notes:notes,validation_status:'pending'}],null);
-  }).then(function(res){
-    if(!res) return;
-    btn.textContent='Kirim Laporan'; btn.disabled=false;
-    if(!res.ok){al.innerHTML='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px;color:#dc2626">Gagal: '+(res.error||'unknown')+'</div>';return;}
-    document.getElementById('pubContent').innerHTML='<div style="text-align:center;padding:20px">'
-      +'<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px">✅</div>'
-      +'<p style="font-size:16px;font-weight:700;color:#0f172a">Laporan Terkirim!</p>'
-      +'<p style="font-size:13px;color:#64748b;margin-top:6px">Mohon tunggu proses validasi.</p>'
-      +'<button onclick="renderPublicForm()" class="btn btn-outline" style="margin-top:16px;font-size:13px">Kirim Lagi</button></div>';
-  }).catch(function(e){btn.textContent='Kirim Laporan';btn.disabled=false;showToast('Gagal: '+(e.message||e),'error');});
-}
-
-// ====================================================================
-// DASHBOARD
-// ====================================================================
-var yearlyChart=null;
-function initDashDate(){if(!document.getElementById('dashDate').value)document.getElementById('dashDate').value=todayStr();if(!document.getElementById('dashYear').value)document.getElementById('dashYear').value=new Date().getFullYear();}
-function loadDashboard(){
-  var date=document.getElementById('dashDate').value||todayStr();
-  gsr('getDashboardStats',STATE.token,date).then(function(s){
-    if(!s||s.error)return;
-    document.getElementById('dsTotalSiswa').textContent=s.total_students;
-    document.getElementById('dsHadir').textContent=s.hadir;
-    document.getElementById('dsIzin').textContent=s.izin;
-    document.getElementById('dsSakit').textContent=s.sakit;
-    document.getElementById('dsAlpa').textContent=s.alpa;
-    document.getElementById('dsPending').textContent=s.pending_validation;
-  });
-}
-function loadYearlyChart(){
-  var year=parseInt(document.getElementById('dashYear').value)||new Date().getFullYear();
-  gsr('getYearlyStats',STATE.token,year).then(function(data){
-    if(!data||data.error)return;
-    var labels=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-    var hadir=[],izin=[],sakit=[],alpa=[];
-    for(var m=1;m<=12;m++){var d=data.monthly[m]||{};hadir.push(d.hadir||0);izin.push(d.izin||0);sakit.push(d.sakit||0);alpa.push(d.alpa||0);}
-    var ctx=document.getElementById('yearlyChart').getContext('2d');
-    if(yearlyChart) yearlyChart.destroy();
-    yearlyChart=new Chart(ctx,{type:'bar',data:{labels:labels,datasets:[
-      {label:'Hadir',data:hadir,backgroundColor:'#10b981'},
-      {label:'Izin',data:izin,backgroundColor:'#3b82f6'},
-      {label:'Sakit',data:sakit,backgroundColor:'#f59e0b'},
-      {label:'Alpa',data:alpa,backgroundColor:'#ef4444'},
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{stacked:true},y:{stacked:true}}}});
-  });
-}
-
-// ====================================================================
-// CLASSES
-// ====================================================================
-function loadClasses(){
-  gsr('getClasses').then(function(cs){
-    STATE.classes=cs||[];
-    var tbody=document.getElementById('classBody');
-    if(!cs||!cs.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px">Belum ada kelas</td></tr>';return;}
-    tbody.innerHTML=cs.map(function(c,i){
-      return '<tr><td>'+(i+1)+'</td><td style="font-weight:600">'+esc(c.name)+'</td><td>'+esc(c.wali_kelas||'-')+'</td><td>'+esc(c.wali_kelas_nip||'-')+'</td><td style="font-size:11px;color:#64748b">'+esc(c.wa_group_id||'-')+'</td>'
-        +'<td style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="editClass(\''+c.id+'\')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteClass(\''+c.id+'\',\''+esc(c.name)+'\')">🗑</button></td></tr>';
-    }).join('');
-  });
-}
-function openAddClass(){STATE.editClassId=null;document.getElementById('classMTitle').textContent='Tambah Kelas';document.getElementById('mClassName').value='';document.getElementById('mClassWali').value='';document.getElementById('mClassNip').value='';document.getElementById('mClassWa').value='';showModal('classModal');}
-function editClass(id){
-  var c=STATE.classes.find(function(x){return x.id===id;});if(!c)return;
-  STATE.editClassId=id;document.getElementById('classMTitle').textContent='Edit Kelas';
-  document.getElementById('mClassName').value=c.name;document.getElementById('mClassWali').value=c.wali_kelas||'';document.getElementById('mClassNip').value=c.wali_kelas_nip||'';document.getElementById('mClassWa').value=c.wa_group_id||'';
-  showModal('classModal');
-}
-function saveClass(){
-  var name=document.getElementById('mClassName').value.trim();if(!name){showToast('Nama kelas diperlukan','error');return;}
-  var data={name:name,wali_kelas:document.getElementById('mClassWali').value.trim(),wali_kelas_nip:document.getElementById('mClassNip').value.trim(),wa_group_id:document.getElementById('mClassWa').value.trim()};
-  document.getElementById('saveClassBtn').textContent='Menyimpan...';
-  var p=STATE.editClassId?gsr('updateClass',STATE.token,STATE.editClassId,data):gsr('createClass',STATE.token,name);
-  p.then(function(res){
-    document.getElementById('saveClassBtn').textContent='Simpan';
-    if(!res||!res.ok){showToast(res&&res.error||'Gagal','error');return;}
-    if(STATE.editClassId) gsr('updateClass',STATE.token,STATE.editClassId,data);
-    hideModal('classModal');loadClasses();showToast('Kelas disimpan','success');
-  }).catch(function(e){document.getElementById('saveClassBtn').textContent='Simpan';showToast(e.message||e,'error');});
-}
-function deleteClass(id,name){openConfirm('Hapus Kelas','Yakin hapus kelas "'+name+'"?',function(){gsr('deleteClass',STATE.token,id).then(function(){loadClasses();showToast('Dihapus','success');});});}
-function saveBulkClasses(){
-  var raw=document.getElementById('bulkClassNames').value.trim();if(!raw)return;
-  var names=raw.split('\n').map(function(n){return n.trim();}).filter(function(n){return n;});
-  gsr('createClasses',STATE.token,names).then(function(res){hideModal('bulkClassModal');if(res&&res.ok){loadClasses();showToast('Berhasil tambah '+res.results.length+' kelas','success');}else showToast(res&&res.error||'Gagal','error');});
-}
-
-// ====================================================================
+// ============================================================
 // STUDENTS
-// ====================================================================
-function loadStudents(){
-  var cid=document.getElementById('stuClassFilter').value, tbody=document.getElementById('stuBody');
-  document.getElementById('stuCount').textContent=cid?'Memuat...':'Pilih kelas untuk melihat siswa.';
-  if(!cid){tbody.innerHTML='';return;}
-  gsr('getStudents',cid,null,null).then(function(students){
-    STATE.students=students||[];
-    document.getElementById('stuCount').textContent=(students.length||0)+' siswa';
-    if(!students.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px">Belum ada siswa</td></tr>';return;}
-    tbody.innerHTML=students.map(function(s,i){
-      return '<tr><td>'+(i+1)+'</td><td style="font-weight:600">'+esc(s.name)+'</td><td>'+esc(s.nis||'-')+'</td><td>'+(s.gender==='L'?'Laki-laki':s.gender==='P'?'Perempuan':'-')+'</td>'
-        +'<td><button class="btn btn-outline btn-sm" onclick="showQr(\''+s.id+'\',\''+esc(s.name)+'\',\''+esc(s.nis||'')+'\')">QR</button></td>'
-        +'<td style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="editStudent(\''+s.id+'\')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(\''+s.id+'\',\''+esc(s.name)+'\')">🗑</button></td></tr>';
-    }).join('');
-  });
+// ============================================================
+function initStudents() { populateClassSelect('stuClassFilter', true); loadStudents(); }
+function loadStudents() {
+  var cls = document.getElementById('stuClassFilter').value;
+  document.getElementById('stuLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('stuLoading').style.display = 'none';
+      var html = rows.map(function(s){
+        return '<tr>'+
+          '<td style="font-weight:600">'+s.name+'</td>'+
+          '<td>'+(s.nis||'-')+'</td>'+
+          '<td>'+(s.gender||'-')+'</td>'+
+          '<td>'+className(s.class_id)+'</td>'+
+          '<td style="display:flex;gap:4px">'+
+          '<button class="btn btn-outline btn-sm" onclick="showEditStudentModal(\''+s.id+'\',\''+esc(s.name)+'\',\''+esc(s.nis)+'\',\''+s.gender+'\',\''+s.class_id+'\')">✏️</button>'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteStudent(\''+s.id+'\')">🗑</button>'+
+          '</td></tr>';
+      }).join('');
+      document.getElementById('stuBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">Belum ada siswa</td></tr>';
+    })
+    .withFailureHandler(function(){ document.getElementById('stuLoading').style.display='none'; })
+    .getStudents(cls||null, null, null);
 }
-function showAddStudentModal(){STATE.editStuId=null;document.getElementById('stuMTitle').textContent='Tambah Siswa';document.getElementById('mStuName').value='';document.getElementById('mStuNis').value='';document.getElementById('mStuGender').value='';fillSelect('mStuClass',STATE.classes,'id','name',document.getElementById('stuClassFilter').value);showModal('studentModal');}
-function editStudent(id){var s=STATE.students.find(function(x){return x.id===id;});if(!s)return;STATE.editStuId=id;document.getElementById('stuMTitle').textContent='Edit Siswa';document.getElementById('mStuName').value=s.name;document.getElementById('mStuNis').value=s.nis||'';document.getElementById('mStuGender').value=s.gender||'';fillSelect('mStuClass',STATE.classes,'id','name',s.class_id);showModal('studentModal');}
-function saveStudent(){
-  var name=document.getElementById('mStuName').value.trim(),nis=document.getElementById('mStuNis').value.trim(),gender=document.getElementById('mStuGender').value,cid=document.getElementById('mStuClass').value;
-  if(!name){showToast('Nama siswa diperlukan','error');return;}
-  document.getElementById('saveStuBtn').textContent='Menyimpan...';
-  var p=STATE.editStuId?gsr('updateStudent',STATE.token,STATE.editStuId,{name:name,nis:nis||null,gender:gender||null,class_id:cid}):gsr('createStudents',STATE.token,[{name:name,nis:nis||null,gender:gender||null,class_id:cid}]);
-  p.then(function(res){document.getElementById('saveStuBtn').textContent='Simpan';if(!res||!res.ok){showToast(res&&res.error||'Gagal','error');return;}hideModal('studentModal');loadStudents();showToast('Siswa disimpan','success');}).catch(function(e){document.getElementById('saveStuBtn').textContent='Simpan';showToast(e.message||e,'error');});
+function esc(s){ return String(s||'').replace(/'/g,"\\'"); }
+function showAddStudentModal() {
+  var classOpts = G.classes.map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; }).join('');
+  openModal('Tambah Siswa',
+    '<div class="form-row"><label class="label">Nama</label><input id="mStuName" class="input" placeholder="Nama lengkap"></div>'+
+    '<div class="form-row"><label class="label">NIS</label><input id="mStuNis" class="input" placeholder="NIS siswa"></div>'+
+    '<div class="form-row"><label class="label">Jenis Kelamin</label>'+
+    '<select id="mStuGender" class="select"><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>'+
+    '<div class="form-row"><label class="label">Kelas</label>'+
+    '<select id="mStuClass" class="select"><option value="">-- Pilih Kelas --</option>'+classOpts+'</select></div>',
+    'Simpan', function(){
+      var name = document.getElementById('mStuName').value.trim();
+      var nis  = document.getElementById('mStuNis').value.trim();
+      var gen  = document.getElementById('mStuGender').value;
+      var cls  = document.getElementById('mStuClass').value;
+      if (!name||!cls) { toast('Nama dan kelas wajib diisi','error'); return; }
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('Siswa ditambahkan','success');loadStudents();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .createStudents(G.token, [{name:name,nis:nis,gender:gen,class_id:cls}]);
+    }
+  );
 }
-function deleteStudent(id,name){openConfirm('Hapus Siswa','Yakin hapus "'+name+'"?',function(){gsr('deleteStudent',STATE.token,id).then(function(){loadStudents();showToast('Siswa dihapus','success');});});}
-function showBulkStudentModal(){fillSelect('mBulkStuClass',STATE.classes,'id','name',document.getElementById('stuClassFilter').value);document.getElementById('bulkStuData').value='';showModal('bulkStuModal');}
-function saveBulkStudents(){
-  var cid=document.getElementById('mBulkStuClass').value,raw=document.getElementById('bulkStuData').value.trim();
-  if(!cid||!raw){showToast('Pilih kelas dan masukkan data','error');return;}
-  var students=raw.split('\n').map(function(l){var p=l.trim().split(',');return{name:(p[0]||'').trim(),nis:(p[1]||'').trim()||null,gender:(p[2]||'').trim()||null,class_id:cid};}).filter(function(s){return s.name;});
-  gsr('createStudents',STATE.token,students).then(function(res){hideModal('bulkStuModal');if(res&&res.ok){loadStudents();showToast('Berhasil tambah '+res.results.length+' siswa','success');}else showToast(res&&res.error||'Gagal','error');});
+function showImportStudentModal() {
+  var classOpts = G.classes.map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; }).join('');
+  openModal('Import Siswa (CSV)',
+    '<div class="form-row"><label class="label">Kelas</label>'+
+    '<select id="mImpClass" class="select"><option value="">-- Pilih Kelas --</option>'+classOpts+'</select></div>'+
+    '<div class="form-row"><label class="label">Data Siswa (satu baris = satu siswa: Nama,NIS,L/P)</label>'+
+    '<textarea id="mImpData" class="input" rows="8" placeholder="Ali Baba,12345,L&#10;Siti Nurbaya,12346,P"></textarea></div>',
+    'Import', function(){
+      var cls   = document.getElementById('mImpClass').value;
+      var raw   = document.getElementById('mImpData').value.trim();
+      if (!cls||!raw) { toast('Pilih kelas dan isi data','error'); return; }
+      var students = raw.split('\n').map(function(line){
+        var parts = line.split(',').map(function(s){ return s.trim(); });
+        return { name:parts[0]||'', nis:parts[1]||'', gender:parts[2]||'L', class_id:cls };
+      }).filter(function(s){ return s.name; });
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast(r.results.length+' siswa diimport','success');loadStudents();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .createStudents(G.token, students);
+    }
+  );
 }
-function showQr(id,name,nis){document.getElementById('qrModalTitle').textContent='QR Code Siswa';document.getElementById('qrModalName').textContent=name;document.getElementById('qrModalNis').textContent='NIS: '+(nis||'-');document.getElementById('qrModalImg').innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(id)+'" style="width:220px;height:220px;border-radius:12px" alt="QR">';showModal('qrModal');}
-function printQr(){var img=document.querySelector('#qrModalImg img'),name=document.getElementById('qrModalName').textContent,nis=document.getElementById('qrModalNis').textContent;var w=window.open('','_blank');w.document.write('<html><body style="text-align:center;font-family:Arial;padding:20px"><img src="'+img.src+'" style="width:220px"><p style="font-weight:700;margin-top:8px">'+name+'</p><p style="color:#64748b">'+nis+'</p></body></html>');w.document.close();w.print();}
-
-// ====================================================================
-// DATA ABSENSI
-// ====================================================================
-function loadHistory(){
-  var date=document.getElementById('histDate').value||todayStr(),cid=document.getElementById('histClass').value,tbody=document.getElementById('histBody');
-  document.getElementById('histLoading').style.display='block';tbody.innerHTML='';
-  var filters={date:date};if(cid)filters.classId=cid;
-  Promise.all([gsr('getAttendance',filters),gsr('getStudents',cid||null,null,null),gsr('getClasses')]).then(function(r){
-    document.getElementById('histLoading').style.display='none';
-    var att=r[0]||[],stus=r[1]||[],cls=r[2]||[];
-    var sm={},cm={};stus.forEach(function(s){sm[s.id]=s;});cls.forEach(function(c){cm[c.id]=c;});
-    if(!att.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">Tidak ada data</td></tr>';return;}
-    tbody.innerHTML=att.map(function(rec){
-      var stu=sm[rec.student_id]||{},cl=cm[rec.class_id]||{};
-      return '<tr><td style="font-weight:600">'+esc(stu.name||rec.student_id)+'</td><td>'+esc(cl.name||rec.class_id)+'</td><td>'+rec.date+'</td><td><span class="badge badge-'+rec.status+'">'+rec.status+'</span></td><td>'+esc(rec.notes||'-')+'</td><td>'+vsBadge(rec.validation_status)+'</td><td><button class="btn btn-danger btn-sm" onclick="delAttendance(\''+rec.id+'\')">🗑</button></td></tr>';
-    }).join('');
-  }).catch(function(e){document.getElementById('histLoading').style.display='none';showToast(e.message||e,'error');});
+function showEditStudentModal(id, name, nis, gender, classId) {
+  var classOpts = G.classes.map(function(c){ return '<option value="'+c.id+'"'+(c.id===classId?' selected':'')+'>'+c.name+'</option>'; }).join('');
+  openModal('Edit Siswa',
+    '<div class="form-row"><label class="label">Nama</label><input id="mStuName" class="input" value="'+name+'"></div>'+
+    '<div class="form-row"><label class="label">NIS</label><input id="mStuNis" class="input" value="'+nis+'"></div>'+
+    '<div class="form-row"><label class="label">Jenis Kelamin</label>'+
+    '<select id="mStuGender" class="select"><option value="L"'+(gender==='L'?' selected':'')+'>Laki-laki</option><option value="P"'+(gender==='P'?' selected':'')+'>Perempuan</option></select></div>'+
+    '<div class="form-row"><label class="label">Kelas</label>'+
+    '<select id="mStuClass" class="select">'+classOpts+'</select></div>',
+    'Simpan', function(){
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('Disimpan','success');loadStudents();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .updateStudent(G.token, id, {
+          name: document.getElementById('mStuName').value,
+          nis:  document.getElementById('mStuNis').value,
+          gender: document.getElementById('mStuGender').value,
+          class_id: document.getElementById('mStuClass').value
+        });
+    }
+  );
 }
-function delAttendance(id){openConfirm('Hapus Absensi','Yakin hapus data ini?',function(){gsr('deleteAttendance',STATE.token,id).then(function(){loadHistory();showToast('Dihapus','success');});});}
-
-// ====================================================================
-// VALIDASI
-// ====================================================================
-function loadValidation(){
-  var date=document.getElementById('valDate').value||todayStr(),cid=document.getElementById('valClass').value,vs=document.getElementById('valStatus').value,tbody=document.getElementById('valBody');
-  document.getElementById('valLoading').style.display='block';tbody.innerHTML='';
-  var filters={startDate:date,endDate:date,status:['izin','sakit']};if(cid)filters.classId=cid;if(vs)filters.validationStatus=vs;
-  Promise.all([gsr('getAttendance',filters),gsr('getStudents',cid||null,null,null),gsr('getClasses')]).then(function(r){
-    document.getElementById('valLoading').style.display='none';
-    var att=r[0]||[],stus=r[1]||[],cls=r[2]||[];
-    var sm={},cm={};stus.forEach(function(s){sm[s.id]=s;});cls.forEach(function(c){cm[c.id]=c;});
-    if(!att.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">Tidak ada data</td></tr>';return;}
-    tbody.innerHTML=att.map(function(rec){
-      var stu=sm[rec.student_id]||{},cl=cm[rec.class_id]||{};
-      return '<tr><td style="font-weight:600">'+esc(stu.name||rec.student_id)+'</td><td>'+esc(cl.name||rec.class_id)+'</td><td>'+rec.date+'</td><td><span class="badge badge-'+rec.status+'">'+rec.status+'</span></td><td>'+esc(rec.notes||'-')+'</td><td>'+vsBadge(rec.validation_status)+'</td>'
-        +'<td style="display:flex;gap:4px;flex-wrap:wrap">'
-        +(rec.validation_status!=='approved'?'<button class="btn btn-green btn-sm" onclick="validate(\''+rec.id+'\',\'approved\')">✅</button>':'')
-        +(rec.validation_status!=='rejected'?'<button class="btn btn-danger btn-sm" onclick="validate(\''+rec.id+'\',\'rejected\')">❌</button>':'')
-        +'</td></tr>';
-    }).join('');
-  }).catch(function(e){document.getElementById('valLoading').style.display='none';showToast(e.message||e,'error');});
-}
-function validate(id,vs){
-  gsr('updateAttendance',STATE.token,id,{validation_status:vs,validated_by:STATE.user&&STATE.user.name}).then(function(res){
-    if(res&&res.ok){loadValidation();showToast(vs==='approved'?'Disetujui':'Ditolak',vs==='approved'?'success':'info');}
-    else showToast(res&&res.error||'Gagal','error');
-  });
-}
-
-// ====================================================================
-// REKAP BULANAN
-// ====================================================================
-function initRekapDate(){var now=new Date();if(!document.getElementById('rekapMonth').value)document.getElementById('rekapMonth').value=now.getMonth()+1;if(!document.getElementById('rekapYear').value)document.getElementById('rekapYear').value=now.getFullYear();}
-function loadRekap(){
-  var cid=document.getElementById('rekapClass').value,month=parseInt(document.getElementById('rekapMonth').value),year=parseInt(document.getElementById('rekapYear').value),result=document.getElementById('rekapResult');
-  if(!cid){showToast('Pilih kelas','error');return;}
-  result.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
-  gsr('getRekapBulanan',STATE.token,cid,year,month).then(function(res){
-    if(!res||!res.ok){result.innerHTML='<p style="color:#ef4444;padding:16px">Gagal: '+(res&&res.error||'unknown')+'</p>';return;}
-    var data=res.data||[],days=res.daysInMonth||30;
-    var MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-    var cls=STATE.classes.find(function(c){return c.id===cid;})||{name:cid};
-    var dayNums=[];for(var d=1;d<=days;d++) dayNums.push(d);
-    var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">'
-      +'<div><h2 style="font-size:15px;font-weight:700">'+esc(cls.name)+' — '+MONTHS[month-1]+' '+year+'</h2>'
-      +'<p style="font-size:12px;color:#64748b">'+data.length+' siswa</p></div>'
-      +'<button class="btn btn-outline btn-sm" onclick="exportRekapCSV()">📥 Export CSV</button></div>'
-      +'<div style="overflow-x:auto"><table style="font-size:11px"><thead><tr>'
-      +'<th style="position:sticky;left:0;background:#f8fafc;z-index:1">No</th>'
-      +'<th style="position:sticky;left:32px;background:#f8fafc;z-index:1;min-width:150px">Nama</th>'
-      +dayNums.map(function(d){return '<th style="min-width:28px;text-align:center">'+d+'</th>';}).join('')
-      +'<th style="min-width:36px;background:#dcfce7">H</th><th style="min-width:36px;background:#dbeafe">I</th><th style="min-width:36px;background:#fef9c3">S</th><th style="min-width:36px;background:#fee2e2">A</th>'
-      +'</tr></thead><tbody>';
-    data.forEach(function(row,i){
-      html+='<tr><td style="position:sticky;left:0;background:#fff;font-weight:600">'+(i+1)+'</td><td style="position:sticky;left:32px;background:#fff;font-weight:600;white-space:nowrap">'+esc(row.student.name)+'</td>'
-        +dayNums.map(function(d){var s=row.attendance[d];var bg=s==='hadir'?'#dcfce7':s==='izin'?'#dbeafe':s==='sakit'?'#fef9c3':s==='alpa'?'#fee2e2':'';var ch=s?s.charAt(0).toUpperCase():'';return'<td style="text-align:center;background:'+bg+';font-weight:700;font-size:10px">'+ch+'</td>';}).join('')
-        +'<td style="text-align:center;font-weight:700;color:#166534;background:#dcfce7">'+row.hadir+'</td><td style="text-align:center;font-weight:700;color:#1e40af;background:#dbeafe">'+row.izin+'</td><td style="text-align:center;font-weight:700;color:#854d0e;background:#fef9c3">'+row.sakit+'</td><td style="text-align:center;font-weight:700;color:#991b1b;background:#fee2e2">'+row.alpa+'</td></tr>';
-    });
-    html+='</tbody></table></div>';
-    result.innerHTML=html;
-    window._rekapData={data:data,days:days,month:month,year:year,className:cls.name};
-  }).catch(function(e){result.innerHTML='<p style="color:#ef4444;padding:16px">Error: '+e.message+'</p>';});
-}
-function exportRekapCSV(){
-  var rd=window._rekapData;if(!rd)return;
-  var days=[];for(var d=1;d<=rd.days;d++) days.push(d);
-  var MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  var rows=[['No','Nama'].concat(days).concat(['H','I','S','A']).join(',')];
-  rd.data.forEach(function(row,i){
-    var cells=[(i+1),'"'+row.student.name+'"'];
-    days.forEach(function(d){cells.push(row.attendance[d]||'');});
-    cells.push(row.hadir,row.izin,row.sakit,row.alpa);
-    rows.push(cells.join(','));
-  });
-  var blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Rekap_'+rd.className+'_'+MONTHS[rd.month-1]+'_'+rd.year+'.csv';a.click();
+function deleteStudent(id) {
+  if (!confirm('Hapus siswa ini?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Dihapus','success');loadStudents();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .deleteStudent(G.token, id);
 }
 
-// ====================================================================
-// WHATSAPP
-// ====================================================================
-function loadWaPreview(){
-  var date=document.getElementById('waDate').value||todayStr(),cid=document.getElementById('waClass').value;
-  var cids=cid?[cid]:STATE.classes.map(function(c){return c.id;});
-  if(!cids.length)return;
-  document.getElementById('waPreview').textContent='Memuat...';
-  gsr('buildWAMessage',STATE.token,cids,date).then(function(res){document.getElementById('waPreview').textContent=res&&res.ok?res.message:'Gagal: '+(res&&res.error||'unknown');}).catch(function(e){document.getElementById('waPreview').textContent='Error: '+e.message;});
-}
-function sendWA(){
-  var date=document.getElementById('waDate').value||todayStr(),cid=document.getElementById('waClass').value;
-  var cids=cid?[cid]:STATE.classes.map(function(c){return c.id;});
-  if(!cids.length){showToast('Tidak ada kelas','error');return;}
-  gsr('sendWhatsApp',STATE.token,cids,date).then(function(res){if(res&&res.ok)showToast('Pesan berhasil dikirim!','success');else showToast(res&&res.error||'Gagal mengirim','error');}).catch(function(e){showToast('Error: '+e.message,'error');});
-}
-
-// ====================================================================
+// ============================================================
 // HOLIDAYS
-// ====================================================================
-function loadHolidays(){
-  gsr('getHolidays').then(function(holidays){
-    var tbody=document.getElementById('holBody');
-    if(!holidays||!holidays.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">Belum ada hari libur</td></tr>';return;}
-    tbody.innerHTML=holidays.map(function(h,i){return'<tr><td>'+(i+1)+'</td><td style="font-weight:600">'+esc(h.name)+'</td><td>'+h.start_date+'</td><td>'+h.end_date+'</td><td><button class="btn btn-danger btn-sm" onclick="deleteHoliday(\''+h.id+'\')">🗑</button></td></tr>';}).join('');
-  });
+// ============================================================
+function loadHolidays() {
+  document.getElementById('holLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('holLoading').style.display = 'none';
+      var html = rows.map(function(h){
+        return '<tr>'+
+          '<td style="font-weight:600">'+h.name+'</td>'+
+          '<td>'+formatDate(h.start_date)+'</td>'+
+          '<td>'+formatDate(h.end_date)+'</td>'+
+          '<td><button class="btn btn-danger btn-sm" onclick="deleteHoliday(\''+h.id+'\')">🗑</button></td>'+
+          '</tr>';
+      }).join('');
+      document.getElementById('holBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">Belum ada hari libur</td></tr>';
+    })
+    .withFailureHandler(function(){ document.getElementById('holLoading').style.display='none'; })
+    .getHolidays();
 }
-function openAddHoliday(){document.getElementById('mHolName').value='';document.getElementById('mHolStart').value='';document.getElementById('mHolEnd').value='';showModal('holidayModal');}
-function saveHoliday(){
-  var name=document.getElementById('mHolName').value.trim(),start=document.getElementById('mHolStart').value,end=document.getElementById('mHolEnd').value;
-  if(!name||!start||!end){showToast('Semua field diperlukan','error');return;}
-  gsr('createHoliday',STATE.token,{name:name,start_date:start,end_date:end}).then(function(res){if(res&&res.ok){hideModal('holidayModal');loadHolidays();showToast('Hari libur ditambahkan','success');}else showToast(res&&res.error||'Gagal','error');});
+function showAddHolidayModal() {
+  openModal('Tambah Hari Libur',
+    '<div class="form-row"><label class="label">Nama Libur</label><input id="mHolName" class="input" placeholder="Contoh: Libur Lebaran"></div>'+
+    '<div class="form-row"><label class="label">Tanggal Mulai</label><input id="mHolStart" class="input" type="date"></div>'+
+    '<div class="form-row"><label class="label">Tanggal Selesai</label><input id="mHolEnd" class="input" type="date"></div>',
+    'Simpan', function(){
+      var name  = document.getElementById('mHolName').value.trim();
+      var start = document.getElementById('mHolStart').value;
+      var end   = document.getElementById('mHolEnd').value;
+      if (!name||!start||!end) { toast('Semua field wajib diisi','error'); return; }
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('Hari libur ditambahkan','success');loadHolidays();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .createHoliday(G.token, {name:name,start_date:start,end_date:end});
+    }
+  );
 }
-function deleteHoliday(id){openConfirm('Hapus Hari Libur','Yakin hapus?',function(){gsr('deleteHoliday',STATE.token,id).then(function(){loadHolidays();showToast('Dihapus','success');});});}
+function deleteHoliday(id) {
+  if (!confirm('Hapus hari libur ini?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Dihapus','success');loadHolidays();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .deleteHoliday(G.token, id);
+}
 
-// ====================================================================
-// JADWAL ABSENSI
-// ====================================================================
-function loadAttSettings(){
-  gsr('getAttendanceSettings').then(function(settings){
-    var wrap=document.getElementById('attSettingsBody');
-    if(!settings||!settings.length){wrap.innerHTML='<p style="color:#94a3b8">Tidak ada data.</p>';return;}
-    wrap.innerHTML=settings.map(function(s){
-      return'<div style="display:grid;grid-template-columns:90px 1fr 1fr 1fr 1fr 80px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9">'
-        +'<div style="font-weight:700;font-size:13px">'+s.day_of_week+'</div>'
-        +'<div><label class="label">Masuk Mulai</label><input class="input" id="as_cis_'+s.id+'" value="'+esc(s.check_in_start||'')+'" style="font-size:13px;padding:8px"></div>'
-        +'<div><label class="label">Masuk Selesai</label><input class="input" id="as_cie_'+s.id+'" value="'+esc(s.check_in_end||'')+'" style="font-size:13px;padding:8px"></div>'
-        +'<div><label class="label">Pulang Mulai</label><input class="input" id="as_cos_'+s.id+'" value="'+esc(s.check_out_start||'')+'" style="font-size:13px;padding:8px"></div>'
-        +'<div><label class="label">Pulang Selesai</label><input class="input" id="as_coe_'+s.id+'" value="'+esc(s.check_out_end||'')+'" style="font-size:13px;padding:8px"></div>'
-        +'<div style="display:flex;flex-direction:column;gap:6px;align-items:center">'
-        +'<label class="label">Aktif</label>'
-        +'<input type="checkbox" id="as_en_'+s.id+'" '+(s.enabled?'checked':'')+' style="width:18px;height:18px;accent-color:#7c3aed">'
-        +'<button class="btn btn-primary btn-sm" onclick="saveAttSetting(\''+s.id+'\')">💾</button></div></div>';
-    }).join('');
-  });
+// ============================================================
+// ATTENDANCE SETTINGS
+// ============================================================
+function loadAttSettings() {
+  document.getElementById('attSetLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('attSetLoading').style.display = 'none';
+      var html = rows.map(function(r){
+        return '<tr>'+
+          '<td style="font-weight:600">'+r.day_of_week+'</td>'+
+          '<td><input type="checkbox" id="as_en_'+r.id+'" '+(r.enabled?'checked':'')+' style="accent-color:#7c3aed;width:16px;height:16px"></td>'+
+          '<td><input class="input" id="as_ci_s_'+r.id+'" type="time" value="'+r.check_in_start+'" style="padding:6px;font-size:12px;width:100px"></td>'+
+          '<td><input class="input" id="as_ci_e_'+r.id+'" type="time" value="'+r.check_in_end+'" style="padding:6px;font-size:12px;width:100px"></td>'+
+          '<td><input class="input" id="as_co_s_'+r.id+'" type="time" value="'+r.check_out_start+'" style="padding:6px;font-size:12px;width:100px"></td>'+
+          '<td><input class="input" id="as_co_e_'+r.id+'" type="time" value="'+r.check_out_end+'" style="padding:6px;font-size:12px;width:100px"></td>'+
+          '<td><button class="btn btn-primary btn-sm" onclick="saveAttSetting(\''+r.id+'\')">💾</button></td>'+
+          '</tr>';
+      }).join('');
+      document.getElementById('attSetBody').innerHTML = html;
+    })
+    .withFailureHandler(function(){ document.getElementById('attSetLoading').style.display='none'; })
+    .getAttendanceSettings();
 }
-function saveAttSetting(id){
-  var data={check_in_start:document.getElementById('as_cis_'+id).value,check_in_end:document.getElementById('as_cie_'+id).value,check_out_start:document.getElementById('as_cos_'+id).value,check_out_end:document.getElementById('as_coe_'+id).value,enabled:document.getElementById('as_en_'+id).checked};
-  gsr('updateAttendanceSetting',STATE.token,id,data).then(function(res){if(res&&res.ok)showToast('Setting disimpan','success');else showToast(res&&res.error||'Gagal','error');});
+function saveAttSetting(id) {
+  var data = {
+    enabled:         document.getElementById('as_en_'+id).checked,
+    check_in_start:  document.getElementById('as_ci_s_'+id).value,
+    check_in_end:    document.getElementById('as_ci_e_'+id).value,
+    check_out_start: document.getElementById('as_co_s_'+id).value,
+    check_out_end:   document.getElementById('as_co_e_'+id).value
+  };
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok) toast('Jadwal disimpan','success'); else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .updateAttendanceSetting(G.token, id, data);
 }
 
-// ====================================================================
+// ============================================================
 // GURU PIKET
-// ====================================================================
-function loadPiket(){
-  Promise.all([gsr('getPiketAssignments',STATE.token),gsr('getProfiles',STATE.token)]).then(function(r){
-    var pikets=r[0]||[],profiles=r[1]||[];STATE.profiles=profiles;
-    var pm={};profiles.forEach(function(p){pm[p.id]=p;});
-    var tbody=document.getElementById('piketBody');
-    if(!pikets.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">Belum ada jadwal piket</td></tr>';return;}
-    tbody.innerHTML=pikets.map(function(p,i){var prof=pm[p.user_id]||{};return'<tr><td>'+(i+1)+'</td><td style="font-weight:600">'+esc(prof.name||p.user_id)+'</td><td>'+esc(p.day_of_week)+'</td><td><button class="btn btn-danger btn-sm" onclick="deletePiket(\''+p.id+'\')">🗑</button></td></tr>';}).join('');
-  });
+// ============================================================
+function loadPiket() {
+  document.getElementById('piketLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('piketLoading').style.display = 'none';
+      google.script.run
+        .withSuccessHandler(function(users) {
+          var userMap = {};
+          users.forEach(function(u){ userMap[u.id]=u; });
+          var html = rows.map(function(r){
+            var u = userMap[r.user_id]||{};
+            return '<tr>'+
+              '<td>'+(u.name||r.user_id||'-')+'</td>'+
+              '<td>'+r.day_of_week+'</td>'+
+              '<td><button class="btn btn-danger btn-sm" onclick="deletePiket(\''+r.id+'\')">🗑</button></td>'+
+              '</tr>';
+          }).join('');
+          document.getElementById('piketBody').innerHTML = html || '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px">Belum ada jadwal</td></tr>';
+        })
+        .withFailureHandler(function(){})
+        .getUsers(G.token);
+    })
+    .withFailureHandler(function(){ document.getElementById('piketLoading').style.display='none'; })
+    .getPiketAssignments(G.token);
 }
-function openPiketModal(){fillSelect('mPiketUser',STATE.profiles,'id','name','');showModal('piketModal');}
-function savePiket(){var uid=document.getElementById('mPiketUser').value,day=document.getElementById('mPiketDay').value;gsr('createPiketAssignments',STATE.token,[{user_id:uid,day_of_week:day}]).then(function(res){if(res&&res.ok){hideModal('piketModal');loadPiket();showToast('Piket ditambahkan','success');}else showToast(res&&res.error||'Gagal','error');});}
-function deletePiket(id){openConfirm('Hapus Piket','Yakin hapus?',function(){gsr('deletePiketAssignment',STATE.token,id).then(function(){loadPiket();showToast('Dihapus','success');});});}
+function showAddPiketModal() {
+  google.script.run
+    .withSuccessHandler(function(users) {
+      var userOpts = users.map(function(u){ return '<option value="'+u.id+'">'+u.name+' ('+u.username+')</option>'; }).join('');
+      var days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+      var dayOpts = days.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
+      openModal('Tambah Guru Piket',
+        '<div class="form-row"><label class="label">Guru</label><select id="mPiketUser" class="select"><option value="">-- Pilih Guru --</option>'+userOpts+'</select></div>'+
+        '<div class="form-row"><label class="label">Hari</label><select id="mPiketDay" class="select">'+dayOpts+'</select></div>',
+        'Simpan', function(){
+          var uid = document.getElementById('mPiketUser').value;
+          var day = document.getElementById('mPiketDay').value;
+          if (!uid) { toast('Pilih guru','error'); return; }
+          google.script.run
+            .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('Ditambahkan','success');loadPiket();}else toast(r&&r.error,'error'); })
+            .withFailureHandler(function(){ toast('Error','error'); })
+            .createPiketAssignments(G.token, [{user_id:uid,day_of_week:day}]);
+        }
+      );
+    })
+    .withFailureHandler(function(){})
+    .getUsers(G.token);
+}
+function deletePiket(id) {
+  if (!confirm('Hapus jadwal piket ini?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Dihapus','success');loadPiket();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .deletePiketAssignment(G.token, id);
+}
 
-// ====================================================================
+// ============================================================
 // USERS
-// ====================================================================
-function loadUsers(){
-  gsr('getUsers',STATE.token).then(function(users){
-    STATE.profiles=users||[];
-    var tbody=document.getElementById('userBody');
-    if(!users||!users.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">Belum ada user</td></tr>';return;}
-    tbody.innerHTML=users.map(function(u,i){
-      return'<tr><td>'+(i+1)+'</td><td>'+esc(u.username)+'</td><td style="font-weight:600">'+esc(u.name)+'</td><td><span class="badge '+(u.role==='admin'?'badge-approved':'badge-izin')+'">'+u.role+'</span></td>'
-        +'<td style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="editUser(\''+u.id+'\')">✏</button>'+(u.role!=='admin'?'<button class="btn btn-danger btn-sm" onclick="deleteUser(\''+u.id+'\',\''+esc(u.name)+'\')">🗑</button>':'')+'</td></tr>';
-    }).join('');
-  });
+// ============================================================
+function loadUsers() {
+  document.getElementById('userLoading').style.display = 'block';
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      document.getElementById('userLoading').style.display = 'none';
+      var html = rows.map(function(u){
+        var isAdmin = u.role === 'admin';
+        return '<tr>'+
+          '<td style="font-weight:600">'+u.username+'</td>'+
+          '<td>'+u.name+'</td>'+
+          '<td><span class="badge" style="background:'+(isAdmin?'#e0e7ff':'#dcfce7')+';color:'+(isAdmin?'#3730a3':'#166534')+'">'+u.role+'</span></td>'+
+          '<td style="display:flex;gap:4px">'+
+          '<button class="btn btn-outline btn-sm" onclick="showEditUserModal(\''+u.id+'\',\''+esc(u.name)+'\',\''+u.role+'\')">✏️</button>'+
+          (!isAdmin?'<button class="btn btn-danger btn-sm" onclick="deleteUser(\''+u.id+'\')">🗑</button>':'')+
+          '</td></tr>';
+      }).join('');
+      document.getElementById('userBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">Belum ada user</td></tr>';
+    })
+    .withFailureHandler(function(){ document.getElementById('userLoading').style.display='none'; })
+    .getUsers(G.token);
 }
-function openAddUser(){STATE.editUserId=null;document.getElementById('userMTitle').textContent='Tambah User';document.getElementById('mUserUsername').value='';document.getElementById('mUserUsername').disabled=false;document.getElementById('mUserName').value='';document.getElementById('mUserPass').value='';document.getElementById('mUserRole').value='guru';showModal('userModal');}
-function editUser(id){var u=STATE.profiles.find(function(x){return x.id===id;});if(!u)return;STATE.editUserId=id;document.getElementById('userMTitle').textContent='Edit User';document.getElementById('mUserUsername').value=u.username;document.getElementById('mUserUsername').disabled=true;document.getElementById('mUserName').value=u.name;document.getElementById('mUserPass').value='';document.getElementById('mUserRole').value=u.role;showModal('userModal');}
-function saveUser(){
-  var un=document.getElementById('mUserUsername').value.trim(),name=document.getElementById('mUserName').value.trim(),pass=document.getElementById('mUserPass').value,role=document.getElementById('mUserRole').value;
-  if(!name){showToast('Nama diperlukan','error');return;}
-  document.getElementById('saveUserBtn').textContent='Menyimpan...';
-  var p=STATE.editUserId?gsr('updateUser',STATE.token,STATE.editUserId,{name:name,password:pass||undefined,role:role}):gsr('createUser',STATE.token,{username:un,password:pass,name:name,role:role});
-  p.then(function(res){document.getElementById('saveUserBtn').textContent='Simpan';if(res&&res.ok){hideModal('userModal');loadUsers();showToast('User disimpan','success');}else showToast(res&&res.error||'Gagal','error');}).catch(function(e){document.getElementById('saveUserBtn').textContent='Simpan';showToast(e.message||e,'error');});
+function showAddUserModal() {
+  openModal('Tambah User',
+    '<div class="form-row"><label class="label">Username</label><input id="mUName" class="input" placeholder="username"></div>'+
+    '<div class="form-row"><label class="label">Nama Lengkap</label><input id="mUFullName" class="input" placeholder="Nama lengkap"></div>'+
+    '<div class="form-row"><label class="label">Password</label><input id="mUPass" class="input" type="password" placeholder="Password"></div>'+
+    '<div class="form-row"><label class="label">Role</label>'+
+    '<select id="mURole" class="select"><option value="guru">Guru</option><option value="admin">Admin</option></select></div>',
+    'Simpan', function(){
+      var uname = document.getElementById('mUName').value.trim();
+      var name  = document.getElementById('mUFullName').value.trim();
+      var pass  = document.getElementById('mUPass').value;
+      var role  = document.getElementById('mURole').value;
+      if (!uname||!name||!pass) { toast('Semua field wajib diisi','error'); return; }
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('User ditambahkan','success');loadUsers();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .createUser(G.token, {username:uname,name:name,password:pass,role:role});
+    }
+  );
 }
-function deleteUser(id,name){openConfirm('Hapus User','Yakin hapus "'+name+'"?',function(){gsr('deleteUser',STATE.token,id).then(function(){loadUsers();showToast('User dihapus','success');});});}
+function showEditUserModal(id, name, role) {
+  openModal('Edit User',
+    '<div class="form-row"><label class="label">Nama Lengkap</label><input id="mUFullName" class="input" value="'+name+'"></div>'+
+    '<div class="form-row"><label class="label">Password Baru (kosongkan jika tidak diubah)</label><input id="mUPass" class="input" type="password" placeholder="Password baru"></div>'+
+    '<div class="form-row"><label class="label">Role</label>'+
+    '<select id="mURole" class="select"><option value="guru"'+(role==='guru'?' selected':'')+'>Guru</option><option value="admin"'+(role==='admin'?' selected':'')+'>Admin</option></select></div>',
+    'Simpan', function(){
+      var data = { name: document.getElementById('mUFullName').value, role: document.getElementById('mURole').value };
+      var pass = document.getElementById('mUPass').value;
+      if (pass) data.password = pass;
+      google.script.run
+        .withSuccessHandler(function(r){ if(r&&r.ok){closeModal();toast('Disimpan','success');loadUsers();}else toast(r&&r.error,'error'); })
+        .withFailureHandler(function(){ toast('Error','error'); })
+        .updateUser(G.token, id, data);
+    }
+  );
+}
+function deleteUser(id) {
+  if (!confirm('Hapus user ini?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Dihapus','success');loadUsers();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .deleteUser(G.token, id);
+}
 
-// ====================================================================
+// ============================================================
 // WEB CONFIG
-// ====================================================================
-function loadWebConfig(){
-  gsr('getWebConfig').then(function(cfg){
-    document.getElementById('cfgTitle').value=cfg.app_title||'';document.getElementById('cfgSubtitle').value=cfg.app_subtitle||'';document.getElementById('cfgSchool').value=cfg.school_name||'';document.getElementById('cfgCity').value=cfg.school_city||'';
-    document.getElementById('cfgLogo').value=cfg.logo_url||'';document.getElementById('cfgBg1').value=cfg.bg_url_1||'';document.getElementById('cfgBg2').value=cfg.bg_url_2||'';document.getElementById('cfgBg3').value=cfg.bg_url_3||'';document.getElementById('cfgBg4').value=cfg.bg_url_4||'';
-    document.getElementById('cfgWaToken').value=cfg.wa_token||'';document.getElementById('cfgWaTarget').value=cfg.wa_target_number||'';document.getElementById('cfgWaProvider').value=cfg.wa_provider||'fonnte';document.getElementById('cfgWaAuto').checked=!!cfg.wa_auto_send_enabled;document.getElementById('cfgWaTime').value=cfg.wa_auto_send_time||'14:00';document.getElementById('cfgWaScope').value=cfg.wa_auto_send_scope||'all';
-  });
+// ============================================================
+function loadWebConfig() {
+  google.script.run
+    .withSuccessHandler(function(c) {
+      if (!c) return;
+      document.getElementById('cfgTitle').value  = c.app_title  || '';
+      document.getElementById('cfgSub').value    = c.app_subtitle || '';
+      document.getElementById('cfgSchool').value = c.school_name || '';
+      document.getElementById('cfgCity').value   = c.school_city || '';
+      document.getElementById('cfgLogo').value   = c.logo_url   || '';
+      document.getElementById('cfgWaToken').value = c.wa_token  || '';
+      document.getElementById('cfgWaNum').value   = c.wa_target_number || '';
+      document.getElementById('cfgWaAuto').value  = c.wa_auto_send_enabled ? 'true' : 'false';
+      document.getElementById('cfgWaTime').value  = c.wa_auto_send_time || '14:00';
+    })
+    .withFailureHandler(function(){})
+    .getWebConfig();
 }
-function saveWebConfig(){
-  var data={app_title:document.getElementById('cfgTitle').value.trim(),app_subtitle:document.getElementById('cfgSubtitle').value.trim(),school_name:document.getElementById('cfgSchool').value.trim(),school_city:document.getElementById('cfgCity').value.trim(),logo_url:document.getElementById('cfgLogo').value.trim(),bg_url_1:document.getElementById('cfgBg1').value.trim(),bg_url_2:document.getElementById('cfgBg2').value.trim(),bg_url_3:document.getElementById('cfgBg3').value.trim(),bg_url_4:document.getElementById('cfgBg4').value.trim()};
-  gsr('updateWebConfig',STATE.token,data).then(function(res){if(res&&res.ok)showToast('Konfigurasi disimpan','success');else showToast(res&&res.error||'Gagal','error');});
+function saveWebConfig() {
+  var data = {
+    app_title:    document.getElementById('cfgTitle').value,
+    app_subtitle: document.getElementById('cfgSub').value,
+    school_name:  document.getElementById('cfgSchool').value,
+    school_city:  document.getElementById('cfgCity').value,
+    logo_url:     document.getElementById('cfgLogo').value
+  };
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Konfigurasi disimpan','success');loadWebConfig();}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .updateWebConfig(G.token, data);
 }
-function saveWAConfig(){
-  var data={wa_token:document.getElementById('cfgWaToken').value.trim(),wa_target_number:document.getElementById('cfgWaTarget').value.trim(),wa_provider:document.getElementById('cfgWaProvider').value,wa_auto_send_enabled:String(document.getElementById('cfgWaAuto').checked),wa_auto_send_time:document.getElementById('cfgWaTime').value,wa_auto_send_scope:document.getElementById('cfgWaScope').value};
-  gsr('updateWebConfig',STATE.token,data).then(function(res){if(res&&res.ok)showToast('Konfigurasi WA disimpan','success');else showToast(res&&res.error||'Gagal','error');});
-}
-
-// ====================================================================
-// SCAN QR
-// ====================================================================
-var scanner=null;
-function startScan(){
-  document.getElementById('startScanBtn').style.display='none';document.getElementById('stopScanBtn').style.display='block';
-  scanner=new Html5Qrcode('qr-reader');
-  scanner.start({facingMode:'environment'},{fps:10,qrbox:220},function(text){processScan(text);},function(e){}).catch(function(e){showToast('Kamera gagal: '+e,'error');stopScan();});
-}
-function stopScan(){if(scanner){try{scanner.stop().then(function(){scanner=null;});}catch(e){scanner=null;}}document.getElementById('startScanBtn').style.display='block';document.getElementById('stopScanBtn').style.display='none';}
-function processScan(text){gsr('scanLookup',text,todayStr()).then(function(res){renderScanResult(res,text);}).catch(function(e){showToast('Error: '+e.message,'error');});}
-function lookupByNis(){var nis=document.getElementById('manualNis').value.trim();if(!nis)return;gsr('scanLookup',nis,todayStr()).then(function(res){renderScanResult(res,nis);});}
-function renderScanResult(res,raw){
-  var box=document.getElementById('scanResult');
-  if(!res||!res.student){box.innerHTML='<div style="text-align:center;color:#ef4444"><div style="font-size:40px">❌</div><p style="font-weight:700;margin-top:8px">Siswa tidak ditemukan</p><p style="font-size:12px;color:#94a3b8;margin-top:4px">'+esc(raw)+'</p></div>';return;}
-  var s=res.student,a=res.attendance;
-  var statusHtml=a?'<span class="badge badge-'+a.status+'">'+a.status+'</span>':'<span style="color:#94a3b8">Belum absen</span>';
-  box.innerHTML='<div style="text-align:center">'
-    +'<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">👤</div>'
-    +'<p style="font-size:18px;font-weight:800">'+esc(s.name)+'</p>'
-    +'<p style="font-size:13px;color:#64748b;margin-top:4px">NIS: '+(s.nis||'-')+'</p>'
-    +'<div style="margin:12px 0">'+statusHtml+'</div>'
-    +(!a?'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
-        +'<button class="btn btn-green" onclick="markAttendance(\''+s.id+'\',\''+s.class_id+'\',\'hadir\')">✅ Hadir</button>'
-        +'<button class="btn btn-danger" onclick="markAttendance(\''+s.id+'\',\''+s.class_id+'\',\'alpa\')">❌ Alpa</button>'
-        +'</div>':'')
-    +'</div>';
-}
-function markAttendance(sid,cid,status){
-  gsr('createAttendance',[{student_id:sid,class_id:cid,date:todayStr(),status:status,notes:''}],STATE.token).then(function(res){
-    if(res&&res.ok){showToast('Absensi dicatat: '+status,'success');gsr('scanLookup',sid,todayStr()).then(function(r){renderScanResult(r,sid);});}
-    else showToast(res&&res.error||'Gagal','error');
-  });
+function saveWAConfig() {
+  var data = {
+    wa_token:            document.getElementById('cfgWaToken').value,
+    wa_target_number:    document.getElementById('cfgWaNum').value,
+    wa_auto_send_enabled:document.getElementById('cfgWaAuto').value,
+    wa_auto_send_time:   document.getElementById('cfgWaTime').value
+  };
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok){toast('Konfigurasi WA disimpan','success');}else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .updateWebConfig(G.token, data);
 }
 
-// ====================================================================
+// ============================================================
 // RESET DATA
-// ====================================================================
-function confirmReset(type){
-  var msgs={attendance:'Hapus data absensi'+(document.getElementById('resetYear').value?' tahun '+document.getElementById('resetYear').value:'')+'? Tidak bisa dibatalkan!',students:'Hapus SEMUA data siswa?',holidays:'Hapus semua hari libur?',piket:'Hapus semua jadwal guru piket?',users:'Hapus semua akun guru?'};
-  openConfirm('⚠ Konfirmasi Reset',msgs[type]||'Yakin?',function(){
-    var year=document.getElementById('resetYear').value||null,fn,args;
-    if(type==='attendance'){fn='resetAttendance';args=[STATE.token,year?parseInt(year):null];}
-    else if(type==='students'){fn='resetStudents';args=[STATE.token];}
-    else if(type==='holidays'){fn='resetHolidays';args=[STATE.token];}
-    else if(type==='piket'){fn='resetGuruPiket';args=[STATE.token];}
-    else if(type==='users'){fn='resetUsers';args=[STATE.token];}
-    gsr.apply(null,[fn].concat(args)).then(function(res){if(res&&res.ok)showToast('Data berhasil dihapus','success');else showToast(res&&res.error||'Gagal','error');});
-  });
+// ============================================================
+function doResetAttendance() {
+  var y = document.getElementById('resetYear').value;
+  if (!confirm('YAKIN hapus semua absensi'+(y?' tahun '+y:'')+'? Tidak dapat dibatalkan!')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok)toast('Dihapus '+r.deleted+' baris','success');else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .resetAttendance(G.token, y?parseInt(y):null);
+}
+function doResetStudents() {
+  if (!confirm('YAKIN hapus SEMUA data siswa? Tidak dapat dibatalkan!')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok)toast('Semua siswa dihapus','success');else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .resetStudents(G.token);
+}
+function doResetHolidays() {
+  if (!confirm('YAKIN hapus SEMUA hari libur?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok)toast('Hari libur dihapus','success');else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .resetHolidays(G.token);
+}
+function doResetGuruPiket() {
+  if (!confirm('YAKIN hapus semua jadwal guru piket?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok)toast('Guru piket dihapus','success');else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .resetGuruPiket(G.token);
+}
+function doResetUsers() {
+  if (!confirm('YAKIN hapus semua user (kecuali admin)?')) return;
+  google.script.run
+    .withSuccessHandler(function(r){ if(r&&r.ok)toast('Users dihapus: '+r.deleted,'success');else toast(r&&r.error,'error'); })
+    .withFailureHandler(function(){ toast('Error','error'); })
+    .resetUsers(G.token);
 }
 
-// ====================================================================
-// HELPERS
-// ====================================================================
-function todayStr(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
-function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
-function pad(n){return n<10?'0'+n:String(n);}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function vsBadge(vs){
-  if(vs==='approved') return'<span class="badge badge-approved">✅ Disetujui</span>';
-  if(vs==='rejected') return'<span class="badge badge-rejected">❌ Ditolak</span>';
-  if(vs==='pending')  return'<span class="badge badge-pending">⏳ Menunggu</span>';
-  return'<span class="badge" style="background:#f1f5f9;color:#64748b">'+esc(vs||'-')+'</span>';
+// ============================================================
+// UTILS
+// ============================================================
+function populateClassSelect(selectId, addAll) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = (addAll?'<option value="">Semua Kelas</option>':'<option value="">-- Pilih Kelas --</option>') +
+    G.classes.map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; }).join('');
 }
-function gdriveUrl(url){if(!url)return'';var m=url.match(/\/d\/([^/]+)\//);if(m)return'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w200';return url;}
-function fillClassSelect(id){var el=document.getElementById(id);if(!el)return;var cur=el.value;var opts=(id==='rekapClass'||id==='mStuClass'||id==='mBulkStuClass')?'<option value="">Pilih Kelas</option>':'<option value="">Semua Kelas</option>';el.innerHTML=opts+STATE.classes.map(function(c){return'<option value="'+c.id+'"'+(c.id===cur?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
-function fillSelect(id,items,valKey,labelKey,selVal){var el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Pilih...</option>'+items.map(function(it){return'<option value="'+it[valKey]+'"'+(it[valKey]===selVal?' selected':'')+'>'+esc(it[labelKey])+'</option>';}).join('');}
-
-var _confirmCb=null;
-function openConfirm(title,msg,cb){document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMsg').textContent=msg;_confirmCb=cb;document.getElementById('confirmOkBtn').onclick=function(){hideModal('confirmModal');if(_confirmCb)_confirmCb();};showModal('confirmModal');}
-
-function applyResponsive(){
-  var w=window.innerWidth;
-  var sl=document.getElementById('scanLayout');if(sl)sl.style.gridTemplateColumns=w<640?'1fr':'1fr 1fr';
-  var wl=document.getElementById('waLayout');if(wl)wl.style.gridTemplateColumns=w<640?'1fr':'1fr 1fr';
-  var cl=document.getElementById('cfgLayout');if(cl)cl.style.gridTemplateColumns=w<640?'1fr':'1fr 1fr';
-}
-
-// Nav clicks
-document.querySelectorAll('.nav-item[data-page]').forEach(function(el){
-  el.addEventListener('click',function(e){
-    e.preventDefault();
-    var page=el.getAttribute('data-page');
-    if(!STATE.token&&page!=='public'&&page!=='login'){showToast('Silakan login terlebih dahulu','error');showPage('login');return;}
-    showPage(page);
-  });
-});
-
-window.addEventListener('resize',applyResponsive);
-window.addEventListener('load',function(){init();applyResponsive();});
 </script>
 </body>
 </html>
