@@ -182,7 +182,10 @@ function login(username, password) {
       if (rows[i][1] === username.trim()) { row = rows[i]; break; }
     }
     if (!row) return { ok: false, error: "Username atau password salah" };
-    if (_hashPwd(password) !== row[3]) return { ok: false, error: "Username atau password salah" };
+    var plainPassword = String(row[3] || "");
+    var hashedPassword = _hashPwd(password);
+    var passwordMatches = (password === plainPassword) || (hashedPassword === plainPassword);
+    if (!passwordMatches) return { ok: false, error: "Username atau password salah" };
     var token = _uuid();
     var sess  = { userId: row[0], username: row[1], name: row[2], role: row[4] };
     CacheService.getScriptCache().put("sess_" + token, JSON.stringify(sess), SESSION_TTL);
