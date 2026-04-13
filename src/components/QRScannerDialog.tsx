@@ -135,20 +135,25 @@ const QRScannerDialog = ({
       await scanner.start(
         { facingMode: facing },
         {
-          fps: 15,
+          fps: 30,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.floor(minEdge * 0.7);
+            // Box 65% — cukup besar untuk scan nyaman, cukup kecil agar proses lebih cepat
+            const size = Math.floor(minEdge * 0.65);
             return { width: size, height: size };
           },
           aspectRatio: 4 / 3,
-          disableFlip: false,
+          disableFlip: true,        // Nonaktifkan flip — hemat prosesor HP
           videoConstraints: {
             facingMode: facing,
-            width: { ideal: 640 },
-            height: { ideal: 480 },
+            width:  { min: 480, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720,  max: 1080 },
           },
-        },
+          // Aktifkan native Barcode API di Android Chrome → scan jauh lebih cepat
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
+        } as any,
         async (decodedText) => {
           const now = Date.now();
           if (
