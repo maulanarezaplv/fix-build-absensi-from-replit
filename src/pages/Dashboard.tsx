@@ -3,6 +3,7 @@ import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, CheckCircle2, Clock, Stethoscope, XCircle, Zap, ClipboardList, FileText, CalendarCog, ChevronRight, BarChart3, ClipboardCheck, CalendarDays, QrCode } from "lucide-react";
 import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -20,6 +21,23 @@ const Dashboard = () => {
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
+
+  // Cek apakah guru ini terjadwal piket hari ini
+  const todayDayNameFull = format(new Date(), "EEEE", { locale: idLocale });
+  const dayNameMap: Record<string, string> = {
+    senin: "Senin", selasa: "Selasa", rabu: "Rabu", kamis: "Kamis",
+    jumat: "Jumat", sabtu: "Sabtu", minggu: "Minggu",
+  };
+  const todayPiketDay = Object.entries(dayNameMap).find(([k]) => todayDayNameFull.toLowerCase().includes(k))?.[1] || "";
+
+  const { data: myPiketAssignments = [] } = useQuery({
+    queryKey: ["my-piket-dashboard", user?.id],
+    queryFn: () => fetch(`/api/guru-piket?user_id=${user?.id}`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!user?.id && !isAdmin,
+    staleTime: 5 * 60_000,
+  });
+
+  const isGuruOnPiketToday = isAdmin || (myPiketAssignments as any[]).some((a: any) => a.day_of_week === todayPiketDay);
 
   useRealtimeSubscription("students", [["student-count"]]);
   useRealtimeSubscription("attendance_records", [["today-stats", today], ["yearly-chart"]]);
@@ -54,12 +72,15 @@ const Dashboard = () => {
     { label: "Scan Absensi",    desc: "Scan QR & input kehadiran",  icon: QrCode,         color: "bg-primary/10 text-primary",          to: "/admin/history" },
   ];
 
-  const guruQuickLinks = [
+  const guruQuickLinksBase = [
     { label: "Validasi Absen",  desc: "Setujui izin & sakit siswa", icon: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600", to: "/admin/validation" },
     { label: "Laporan Harian",  desc: "Rekap absensi hari ini",     icon: FileText,       color: "bg-warning/10 text-warning",         to: "/admin/reports" },
     { label: "Rekap Bulanan",   desc: "Rekapitulasi per bulan",     icon: CalendarDays,   color: "bg-blue-500/10 text-blue-600",        to: "/admin/rekap" },
-    { label: "Scan Absensi",    desc: "Scan QR & input kehadiran",  icon: QrCode,         color: "bg-primary/10 text-primary",          to: "/admin/history" },
   ];
+  // "Scan Absensi" hanya tampil jika guru sedang piket hari ini
+  const guruQuickLinks = isGuruOnPiketToday
+    ? [...guruQuickLinksBase, { label: "Scan Absensi", desc: "Scan QR & input kehadiran", icon: QrCode, color: "bg-primary/10 text-primary", to: "/admin/history" }]
+    : guruQuickLinksBase;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

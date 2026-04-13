@@ -2,6 +2,8 @@ import { memo, useState, useMemo, useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import {
   LayoutDashboard, Users, School, ClipboardCheck,
   Calendar, LogOut, GraduationCap, UserCog, Globe,
@@ -63,7 +65,7 @@ const SidebarContent = memo(({
   isMobile: boolean;
   onMobileClose: () => void;
 }) => {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showLogout, setShowLogout] = useState(false);
 
@@ -75,6 +77,23 @@ const SidebarContent = memo(({
     refetchOnMount: false,
   });
 
+  // Cek piket hari ini untuk guru (non-admin)
+  const todayDayNameFull = format(new Date(), "EEEE", { locale: idLocale });
+  const dayNameMap: Record<string, string> = {
+    senin: "Senin", selasa: "Selasa", rabu: "Rabu", kamis: "Kamis",
+    jumat: "Jumat", sabtu: "Sabtu", minggu: "Minggu",
+  };
+  const todayPiketDay = Object.entries(dayNameMap).find(([k]) => todayDayNameFull.toLowerCase().includes(k))?.[1] || "";
+
+  const { data: sidebarPiket = [] } = useQuery({
+    queryKey: ["my-piket-sidebar", (user as any)?.id],
+    queryFn: () => fetch(`/api/guru-piket?user_id=${(user as any)?.id}`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!(user as any)?.id && !isAdmin,
+    staleTime: 5 * 60_000,
+  });
+
+  const isOnPiketToday = isAdmin || (sidebarPiket as any[]).some((a: any) => a.day_of_week === todayPiketDay);
+
   const appTitle = webConfig?.app_title || "E-ABSENSI";
   const appSubtitle = webConfig?.app_subtitle || "SCHOOL SYSTEM";
   const logoUrl = webConfig?.logo_url ? convertGDriveLink(webConfig.logo_url) : null;
@@ -85,8 +104,13 @@ const SidebarContent = memo(({
   }, [signOut, navigate]);
 
   const filteredItems = useMemo(
-    () => allMenuItems.filter(item => !("adminOnly" in item && item.adminOnly) || isAdmin),
-    [isAdmin]
+    () => allMenuItems.filter(item => {
+      if ("adminOnly" in item && item.adminOnly && !isAdmin) return false;
+      // "Scan & Absensi" hanya untuk admin atau guru yang piket hari ini
+      if (item.to === "/admin/history" && !isOnPiketToday) return false;
+      return true;
+    }),
+    [isAdmin, isOnPiketToday]
   );
 
   const showLabels = isMobile || !collapsed;
