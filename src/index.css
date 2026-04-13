@@ -8,6 +8,16 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Hilangkan 300ms tap delay di mobile untuk semua elemen interaktif */
+button, a, input, select, textarea, [role="button"], [tabindex] {
+  touch-action: manipulation;
+}
+
+/* Hilangkan highlight biru/abu saat tap di Android */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @layer base {
   :root {
     --background: 220 20% 96%;

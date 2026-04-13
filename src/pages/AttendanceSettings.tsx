@@ -111,7 +111,7 @@ const AttendanceSettings = () => {
             <CalendarCheck2 className="h-5 w-5" /> Tanggal Mulai Sekolah
           </CardTitle>
           <p className="text-white/80 text-sm">
-            Absensi hanya dihitung mulai dari tanggal ini. Hari sebelumnya tidak dianggap alpa.
+            Absensi dihitung mulai dari tanggal ini <span className="font-bold text-white">(tanggal ini ikut dihitung)</span>. Hari sebelumnya tidak dianggap alpa.
           </p>
         </CardHeader>
         <CardContent className="p-4">

@@ -68,9 +68,10 @@ const PublicLayout = () => {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden">
+    // Latar fixed → aman pakai overflow-y-auto agar kartu bisa discroll di HP kecil
+    <div className="min-h-screen overflow-y-auto overscroll-none">
 
-      {/* Gambar lama — animasi keluar ke kanan */}
+      {/* Gambar lama — animasi keluar */}
       {prevIndex !== null && (
         <div
           key={`prev-${prevIndex}`}
@@ -79,7 +80,7 @@ const PublicLayout = () => {
         />
       )}
 
-      {/* Gambar baru — animasi masuk dari kiri hanya saat ada transisi (bukan load pertama) */}
+      {/* Gambar baru — animasi masuk */}
       <div
         key={`curr-${bgIndex}`}
         className={`fixed inset-0${prevIndex !== null ? " bg-slide-in" : ""}`}
@@ -89,9 +90,14 @@ const PublicLayout = () => {
       {/* Overlay gelap */}
       <div className="fixed inset-0 bg-black/50" style={{ zIndex: 2 }} />
 
-      {/* Konten halaman */}
-      <div className="relative w-full max-w-sm mx-4 py-6" style={{ zIndex: 3 }}>
-        <Outlet />
+      {/* Konten halaman — scrollable, background tetap di tempat */}
+      <div
+        className="relative min-h-screen flex items-center justify-center py-6 px-4"
+        style={{ zIndex: 3 }}
+      >
+        <div className="w-full max-w-sm">
+          <Outlet />
+        </div>
       </div>
     </div>
   );
