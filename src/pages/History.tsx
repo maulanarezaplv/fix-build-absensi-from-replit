@@ -214,7 +214,19 @@ const History = () => {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  if (!isAdmin && !piketLoading && !isGuruOnPiketToday) {
+  // Selama pengecekan piket masih berjalan, jangan tampilkan halaman sama sekali (cegah scan sebelum cek selesai)
+  if (!isAdmin && piketLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm">Memeriksa jadwal piket...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin && !isGuruOnPiketToday) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
         <Card className="max-w-md w-full border-none shadow-lg">

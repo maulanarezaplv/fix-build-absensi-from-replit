@@ -391,13 +391,22 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
     }
   });
 
-  app.post("/api/attendance", async (req, res) => {
+  app.post("/api/attendance", requireAuth, async (req, res) => {
     try {
+      // Cek piket untuk non-admin: hanya guru piket hari ini yang bisa input absensi
+      const isAdmin = req.session.roles?.includes("admin");
+      if (!isAdmin) {
+        const indonesianDays = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+        const todayDayName = indonesianDays[new Date().getDay()];
+        const piketList = await storage.getPiketAssignments(req.session.userId);
+        const isOnPiket = piketList.some((a) => a.day_of_week === todayDayName);
+        if (!isOnPiket) {
+          return res.status(403).json({ error: "Akses ditolak: Anda tidak terjadwal piket hari ini." });
+        }
+      }
       const body = req.body;
       const records = Array.isArray(body) ? body : body.records || [body];
-      if (req.session.userId) {
-        records.forEach((r: any) => { if (!r.submitted_by) r.submitted_by = req.session.userId; });
-      }
+      records.forEach((r: any) => { if (!r.submitted_by) r.submitted_by = req.session.userId; });
       const result = await storage.createAttendance(records);
       broadcastSSE("attendance_records");
       res.json(result);

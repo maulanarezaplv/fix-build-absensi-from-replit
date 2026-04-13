@@ -89,7 +89,9 @@ const SidebarContent = memo(({
     queryKey: ["my-piket-sidebar", (user as any)?.id],
     queryFn: () => fetch(`/api/guru-piket?user_id=${(user as any)?.id}`, { credentials: "include" }).then(r => r.json()),
     enabled: !!(user as any)?.id && !isAdmin,
-    staleTime: 5 * 60_000,
+    staleTime: 60_000,        // 1 menit — agar perubahan jadwal piket segera terlihat
+    refetchOnMount: true,     // Selalu cek ulang saat sidebar dimount
+    refetchOnWindowFocus: true, // Cek ulang saat user kembali ke tab
   });
 
   const isOnPiketToday = isAdmin || (sidebarPiket as any[]).some((a: any) => a.day_of_week === todayPiketDay);
