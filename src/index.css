@@ -257,3 +257,15 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeSpeed;
 }
+
+/* GPU-accelerated card rendering — kurangi repaint saat scroll */
+.animate-fade-in,
+.animate-slide-left {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Momentum scroll di iOS agar scroll terasa native */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}

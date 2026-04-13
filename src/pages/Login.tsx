@@ -53,7 +53,7 @@ const Login = () => {
   return (
     <div className="animate-fade-in">
       {/* ── Card ── */}
-      <div className="rounded-2xl overflow-hidden bg-white border border-slate-200/80 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.22)]">
+      <div className="rounded-2xl overflow-hidden bg-white border border-slate-200/80 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.22)]" style={{ transform: "translateZ(0)" }}>
 
         {/* Header */}
         <div className="flex flex-col items-center pt-6 pb-5 px-6 text-center">
