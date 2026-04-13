@@ -27,7 +27,10 @@ const Login = () => {
     refetchOnMount: false,
   });
 
-  const logoUrl = webConfig?.logo_url ? convertGDriveLink(webConfig.logo_url) : null;
+  // Proxy agar gambar logo selalu muat di HP (hindari redirect/CORS Google Drive)
+  const logoUrl = webConfig?.logo_url
+    ? `/api/proxy-image?url=${encodeURIComponent(convertGDriveLink(webConfig.logo_url))}`
+    : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
