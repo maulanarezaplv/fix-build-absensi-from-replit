@@ -596,6 +596,7 @@ const History = () => {
         </div>
       ) : (
         <div className="grid lg:grid-cols-[1fr_340px] gap-5">
+          <div className="order-2 lg:order-1">
           {classId ? (
             <Card className="border-none shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)] px-5 py-4 flex items-center justify-between">
@@ -677,8 +678,9 @@ const History = () => {
               </CardContent>
             </Card>
           )}
+          </div>{/* end order-2 lg:order-1 */}
 
-          <div className="space-y-4">
+          <div className="order-1 lg:order-2 space-y-4">
             <Card className="border-none shadow-md overflow-hidden">
               <div className="bg-gradient-to-br from-[hsl(168,71%,35%)] to-[hsl(142,71%,38%)] p-4 text-white">
                 <div className="flex items-center gap-2 mb-1">

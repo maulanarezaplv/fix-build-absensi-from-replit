@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import {
   Dialog,
   DialogContent,
@@ -129,7 +129,11 @@ const QRScannerDialog = ({
         return;
       }
 
-      const scanner = new Html5Qrcode(QR_READER_ID);
+      const scanner = new Html5Qrcode(QR_READER_ID, {
+        // Hanya scan QR Code — skip format barcode lain → proses lebih cepat
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false,
+      });
       scannerRef.current = scanner;
 
       await scanner.start(
@@ -138,18 +142,16 @@ const QRScannerDialog = ({
           fps: 30,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            // Box 65% — cukup besar untuk scan nyaman, cukup kecil agar proses lebih cepat
-            const size = Math.floor(minEdge * 0.65);
+            const size = Math.floor(minEdge * 0.7);
             return { width: size, height: size };
           },
           aspectRatio: 4 / 3,
-          disableFlip: true,        // Nonaktifkan flip — hemat prosesor HP
+          disableFlip: true,
           videoConstraints: {
             facingMode: facing,
             width:  { min: 480, ideal: 1280, max: 1920 },
             height: { min: 480, ideal: 720,  max: 1080 },
           },
-          // Aktifkan native Barcode API di Android Chrome → scan jauh lebih cepat
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true,
           },
@@ -242,7 +244,7 @@ const QRScannerDialog = ({
       if (!v) stopScanner();
       onOpenChange(v);
     }}>
-      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg rounded-2xl p-0 overflow-hidden max-h-[95dvh] flex flex-col">
+      <DialogContent className="w-[96vw] max-w-md sm:max-w-lg rounded-2xl p-0 overflow-hidden max-h-[95dvh] flex flex-col">
         <DialogHeader className="p-4 pb-2 flex-shrink-0">
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-sm">
@@ -293,7 +295,7 @@ const QRScannerDialog = ({
           <div
             id={QR_READER_ID}
             className="w-full rounded-xl overflow-hidden bg-black"
-            style={{ height: "clamp(220px, 55vw, 420px)" }}
+            style={{ height: "clamp(260px, 55dvh, 460px)" }}
           />
 
           {scanCount > 0 && (

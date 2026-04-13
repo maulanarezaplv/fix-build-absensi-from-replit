@@ -13,19 +13,22 @@ button, a, input, select, textarea, [role="button"], [tabindex] {
   touch-action: manipulation;
 }
 
-/* Sembunyikan semua overlay/garis dari library html5-qrcode */
+/* Sembunyikan semua overlay/garis dari library html5-qrcode — ID: qr-reader-container */
 #qr-shaded-region {
   display: none !important;
 }
 /* Hilangkan border/outline pada video */
-#qr-scanner-reader video {
+#qr-reader-container video {
   border: none !important;
   outline: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
-/* Sembunyikan semua div overlay dengan inline style (scan box, pojok, garis) */
-#qr-scanner-reader > div[style],
-#qr-scanner-reader__scan_region > div,
-#qr-scanner-reader__scan_region > img {
+/* Sembunyikan div overlay dengan inline style (scan box, pojok, garis hijau) */
+#qr-reader-container > div[style],
+#qr-reader-container__scan_region > div,
+#qr-reader-container__scan_region > img {
   display: none !important;
   border: none !important;
   box-shadow: none !important;

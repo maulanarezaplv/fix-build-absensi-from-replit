@@ -4,6 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { allMenuItems } from "@/components/AdminSidebar";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -28,13 +31,34 @@ const shortLabel: Record<string, string> = {
 };
 
 const BottomNav = memo(() => {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showLogout, setShowLogout] = useState(false);
 
+  // Cek piket hari ini (pakai cache yang sama dengan sidebar — tidak ada request tambahan)
+  const todayDayNameFull = format(new Date(), "EEEE", { locale: idLocale });
+  const dayNameMap: Record<string, string> = {
+    senin: "Senin", selasa: "Selasa", rabu: "Rabu", kamis: "Kamis",
+    jumat: "Jumat", sabtu: "Sabtu", minggu: "Minggu",
+  };
+  const todayPiketDay = Object.entries(dayNameMap).find(([k]) => todayDayNameFull.toLowerCase().includes(k))?.[1] || "";
+
+  const { data: navPiket = [] } = useQuery({
+    queryKey: ["my-piket-sidebar", (user as any)?.id],
+    queryFn: () => fetch(`/api/guru-piket?user_id=${(user as any)?.id}`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!(user as any)?.id && !isAdmin,
+    staleTime: 60_000,
+  });
+
+  const isOnPiketToday = isAdmin || (navPiket as any[]).some((a: any) => a.day_of_week === todayPiketDay);
+
   const items = useMemo(
-    () => allMenuItems.filter(item => !("adminOnly" in item && item.adminOnly) || isAdmin),
-    [isAdmin]
+    () => allMenuItems.filter(item => {
+      if ("adminOnly" in item && item.adminOnly && !isAdmin) return false;
+      if (item.to === "/admin/history" && !isOnPiketToday) return false;
+      return true;
+    }),
+    [isAdmin, isOnPiketToday]
   );
 
   const handleLogout = useCallback(async () => {
