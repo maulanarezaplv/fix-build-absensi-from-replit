@@ -10,12 +10,16 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "./attached_assets"),
     },
   },
+  optimizeDeps: {
+    // Paksa re-optimize setiap start — mencegah stale chunk hash yang menyebabkan blank page
+    force: true,
+  },
   server: {
     allowedHosts: true,
-    // Cegah browser menyimpan cache chunk Vite agar tidak terjadi
-    // blank page setelah server restart (stale chunk issue)
     headers: {
       "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
     },
   },
   build: {
