@@ -172,7 +172,7 @@ const RekapBulanan = () => {
   });
   const schoolStartDate: string | null = webConfig?.school_start_date || null;
 
-  const { data: students = [] } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ["students-rekap", classId],
     queryFn: () => {
       const classParam = classId !== "all" ? `?class_id=${classId}` : "";
@@ -843,11 +843,17 @@ const RekapBulanan = () => {
                 {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ["students-rekap"] });
-              queryClient.invalidateQueries({ queryKey: ["attendance-rekap"] });
-            }} className="bg-white text-primary hover:bg-white/90 font-semibold">
-              <Search className="h-4 w-4 mr-2" />Tampilkan
+            <Button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["students-rekap"] });
+                queryClient.invalidateQueries({ queryKey: ["attendance-rekap"] });
+              }}
+              variant="outline"
+              size="icon"
+              className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+              title="Perbarui data"
+            >
+              <Search className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -953,7 +959,18 @@ const RekapBulanan = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {students.length === 0 ? (
+                    {studentsLoading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-b animate-pulse">
+                          <td className="w-12 px-2 py-3 text-center"><div className="h-4 bg-muted rounded mx-auto w-6" /></td>
+                          <td className="min-w-[140px] px-3 py-3"><div className="h-4 bg-muted rounded w-32" /></td>
+                          {Array.from({ length: Math.min(daysInMonth, 10) }).map((_, d) => (
+                            <td key={d} className="w-9 px-1 py-3 text-center"><div className="h-6 w-6 bg-muted rounded mx-auto" /></td>
+                          ))}
+                          <td colSpan={daysInMonth - 10 + 5} />
+                        </tr>
+                      ))
+                    ) : students.length === 0 ? (
                       <tr>
                         <td colSpan={daysInMonth + 7} className="text-center py-12 text-muted-foreground align-middle">
                           Tidak ada data siswa
@@ -1039,7 +1056,19 @@ const RekapBulanan = () => {
 
           {/* ── Mobile: card view per student (below md) ── */}
           <div className="md:hidden space-y-2">
-            {classId !== "all" ? (
+            {studentsLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-xl border shadow-sm p-3 animate-pulse space-y-2">
+                  <div className="h-4 bg-muted rounded w-40" />
+                  <div className="flex gap-2">
+                    {Array.from({ length: 4 }).map((_, j) => <div key={j} className="h-6 w-14 bg-muted rounded" />)}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {Array.from({ length: 10 }).map((_, j) => <div key={j} className="h-7 w-7 bg-muted rounded" />)}
+                  </div>
+                </div>
+              ))
+            ) : classId !== "all" ? (
               (students as any[]).length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">Tidak ada data siswa</p>
               ) : (
