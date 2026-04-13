@@ -60,7 +60,7 @@ const RekapBulanan = () => {
   const [classId, setClassId] = useState("all");
   const [month, setMonth] = useState(now.getMonth().toString());
   const [year, setYear] = useState(now.getFullYear().toString());
-  const [showData, setShowData] = useState(true);
+  const [showData, setShowData] = useState(false);
 
   // Excel dialog state
   const [showExcelDialog, setShowExcelDialog] = useState(false);
@@ -818,7 +818,7 @@ const RekapBulanan = () => {
             <p className="text-white/80 text-sm">Data otomatis diambil dari Laporan Harian</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={classId} onValueChange={setClassId}>
+            <Select value={classId} onValueChange={v => { setClassId(v); setShowData(false); }}>
               <SelectTrigger className="w-40 bg-white/20 border-white/30 text-white placeholder:text-white/60">
                 <SelectValue placeholder="Semua Kelas" />
               </SelectTrigger>
@@ -827,7 +827,7 @@ const RekapBulanan = () => {
                 {sortedClasses.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={month} onValueChange={setMonth}>
+            <Select value={month} onValueChange={v => { setMonth(v); setShowData(false); }}>
               <SelectTrigger className="w-36 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
@@ -835,7 +835,7 @@ const RekapBulanan = () => {
                 {MONTHS.map((m, i) => <SelectItem key={i} value={i.toString()}>{m}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={year} onValueChange={setYear}>
+            <Select value={year} onValueChange={v => { setYear(v); setShowData(false); }}>
               <SelectTrigger className="w-28 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
@@ -845,15 +845,13 @@ const RekapBulanan = () => {
             </Select>
             <Button
               onClick={() => {
+                setShowData(true);
                 queryClient.invalidateQueries({ queryKey: ["students-rekap"] });
                 queryClient.invalidateQueries({ queryKey: ["attendance-rekap"] });
               }}
-              variant="outline"
-              size="icon"
-              className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-              title="Perbarui data"
+              className="bg-white text-primary hover:bg-white/90 font-semibold"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4 mr-2" />Tampilkan
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -905,6 +903,18 @@ const RekapBulanan = () => {
         }
         return null;
       })()}
+
+      {!showData && (
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <Search className="h-8 w-8 text-primary/50" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Pilih filter lalu klik <span className="text-primary">Tampilkan</span></p>
+            <p className="text-sm text-muted-foreground mt-1">Pilih kelas, bulan, dan tahun — kemudian klik tombol Tampilkan untuk memuat data rekap.</p>
+          </div>
+        </div>
+      )}
 
       {showData && (
         <>
