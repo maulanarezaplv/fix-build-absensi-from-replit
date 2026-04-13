@@ -13,6 +13,25 @@ button, a, input, select, textarea, [role="button"], [tabindex] {
   touch-action: manipulation;
 }
 
+/* Sembunyikan semua overlay/garis dari library html5-qrcode */
+#qr-shaded-region {
+  display: none !important;
+}
+/* Hilangkan border/outline pada video */
+#qr-scanner-reader video {
+  border: none !important;
+  outline: none !important;
+}
+/* Sembunyikan semua div overlay dengan inline style (scan box, pojok, garis) */
+#qr-scanner-reader > div[style],
+#qr-scanner-reader__scan_region > div,
+#qr-scanner-reader__scan_region > img {
+  display: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+
 /* Hilangkan highlight biru/abu saat tap di Android */
 * {
   -webkit-tap-highlight-color: transparent;
