@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, X, CheckCircle2, XCircle, FlipHorizontal2 } from "lucide-react";
+import { Camera, X, CheckCircle2, XCircle, FlipHorizontal2, Maximize, Minimize } from "lucide-react";
+import { useFullscreen, useWakeLock } from "@/hooks/useFullscreen";
 
 export type ScanResult = {
   success: boolean;
@@ -87,6 +88,9 @@ const QRScannerDialog = ({
   const processingRef = useRef(false);
   const facingModeRef = useRef(facingMode);
   facingModeRef.current = facingMode;
+
+  const { isFullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen();
+  const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
 
   const showOverlay = (result: ScanResult) => {
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -203,6 +207,7 @@ const QRScannerDialog = ({
     await startScanner(next);
   };
 
+  // Saat dialog scan dibuka: aktifkan Wake Lock (layar tidak mati) + fullscreen otomatis
   useEffect(() => {
     if (open) {
       setScanCount(0);
@@ -212,14 +217,33 @@ const QRScannerDialog = ({
       lastScannedCodeRef.current = "";
       processingRef.current = false;
       startScanner("environment");
+
+      // Cegah layar mati selama scan
+      requestWakeLock();
+      // Auto fullscreen di mobile saat scan dibuka
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        enterFullscreen();
+      }
     } else {
       stopScanner();
+      releaseWakeLock();
+      // Keluar fullscreen saat dialog ditutup
+      if (document.fullscreenElement) {
+        exitFullscreen();
+      }
     }
     return () => {
       stopScanner();
+      releaseWakeLock();
       if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleClose = () => {
+    stopScanner();
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => {
@@ -228,21 +252,35 @@ const QRScannerDialog = ({
     }}>
       <DialogContent className="w-[95vw] max-w-md sm:max-w-lg rounded-2xl p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-sm">
               <Camera className="h-4 w-4" />
               {title}
             </DialogTitle>
-            {/* Tombol ganti kamera */}
-            <button
-              onClick={switchCamera}
-              disabled={switching}
-              title={facingMode === "environment" ? "Ganti ke kamera depan" : "Ganti ke kamera belakang"}
-              className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-2.5 py-1 hover:bg-primary/10 disabled:opacity-50 transition-colors"
-            >
-              <FlipHorizontal2 className={`h-3.5 w-3.5 ${switching ? "animate-spin" : ""}`} />
-              {switching ? "Ganti..." : facingMode === "environment" ? "Kamera Depan" : "Kamera Belakang"}
-            </button>
+            <div className="flex items-center gap-1.5">
+              {/* Tombol fullscreen — khusus mobile */}
+              <button
+                onClick={() => isFullscreen ? exitFullscreen() : enterFullscreen()}
+                className="md:hidden flex items-center gap-1 text-xs text-muted-foreground border border-border rounded-lg px-2 py-1 hover:bg-muted transition-colors"
+                title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+                data-testid="button-scan-fullscreen"
+              >
+                {isFullscreen
+                  ? <Minimize className="h-3.5 w-3.5" />
+                  : <Maximize className="h-3.5 w-3.5" />
+                }
+              </button>
+              {/* Tombol ganti kamera */}
+              <button
+                onClick={switchCamera}
+                disabled={switching}
+                title={facingMode === "environment" ? "Ganti ke kamera depan" : "Ganti ke kamera belakang"}
+                className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-2.5 py-1 hover:bg-primary/10 disabled:opacity-50 transition-colors"
+              >
+                <FlipHorizontal2 className={`h-3.5 w-3.5 ${switching ? "animate-spin" : ""}`} />
+                {switching ? "Ganti..." : facingMode === "environment" ? "Depan" : "Belakang"}
+              </button>
+            </div>
           </div>
           <DialogDescription className="text-xs">{description}</DialogDescription>
         </DialogHeader>
@@ -295,7 +333,8 @@ const QRScannerDialog = ({
           <Button
             variant="outline"
             className="w-full mt-3"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
+            data-testid="button-close-scanner"
           >
             <X className="h-4 w-4 mr-1" /> Tutup Kamera
           </Button>

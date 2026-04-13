@@ -1,15 +1,14 @@
 import { memo, useState, useEffect } from "react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Calendar, Clock, Moon, Sun, PanelLeft } from "lucide-react";
+import { Calendar, Clock, Moon, Sun, PanelLeft, Maximize, Minimize } from "lucide-react";
+import { useFullscreen } from "@/hooks/useFullscreen";
 
 interface AdminHeaderProps {
   collapsed: boolean;
   onToggleSidebar: () => void;
 }
 
-// Clock isolated in its own component so it re-renders every second without
-// affecting the rest of AdminHeader or its siblings.
 const LiveClock = memo(() => {
   const [time, setTime] = useState(() => new Date());
 
@@ -43,6 +42,7 @@ LiveClock.displayName = "LiveClock";
 
 const AdminHeader = memo(({ onToggleSidebar }: AdminHeaderProps) => {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -75,12 +75,27 @@ const AdminHeader = memo(({ onToggleSidebar }: AdminHeaderProps) => {
       <div className="flex items-center gap-2 md:gap-4 min-w-0 overflow-hidden">
         <LiveClock />
 
+        {/* Dark mode toggle */}
         <button
           onClick={toggleDark}
           className="p-1.5 rounded-lg hover:bg-muted transition-colors"
           title={dark ? "Mode Siang" : "Mode Malam"}
+          data-testid="button-toggle-darkmode"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+
+        {/* Fullscreen toggle — mobile only (hidden on md+) */}
+        <button
+          onClick={toggleFullscreen}
+          className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors"
+          title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+          data-testid="button-toggle-fullscreen"
+        >
+          {isFullscreen
+            ? <Minimize className="h-4 w-4" />
+            : <Maximize className="h-4 w-4" />
+          }
         </button>
       </div>
     </header>
