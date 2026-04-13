@@ -45,7 +45,7 @@ const AdminLayout = () => {
 
   if (isLoading && !user) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex items-center justify-center bg-background" style={{ height: "100dvh" }}>
         <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
@@ -56,7 +56,7 @@ const AdminLayout = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex overflow-hidden" style={{ height: "100dvh" }}>
       {/* Desktop sidebar — hanya tampil di layar lebar */}
       <AdminSidebar
         collapsed={collapsed}
