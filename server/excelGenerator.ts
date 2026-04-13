@@ -36,10 +36,17 @@ async function addClassSheetToWorkbook(
   const attendance = attendanceRows as any[];
   const schoolStartDate: string | null = cfg?.school_start_date || null;
 
+  // Izin & Sakit hanya dihitung jika sudah approved (sama seperti tampilan aplikasi)
   const attendanceMap: Record<string, Record<number, string>> = {};
   for (const rec of attendance) {
     const sid = rec.student_id;
     const day = parseInt(rec.date.slice(8, 10));
+
+    // Izin / Sakit yang belum approved diabaikan (pending / rejected = tidak ada keterangan)
+    if ((rec.status === "izin" || rec.status === "sakit") && rec.validation_status !== "approved") {
+      continue;
+    }
+
     const st =
       rec.status === "hadir" ? "H" :
       rec.status === "sakit" ? "S" :
@@ -52,6 +59,7 @@ async function addClassSheetToWorkbook(
 
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
+  const todayStr = todayEnd.toISOString().slice(0, 10); // YYYY-MM-DD hari ini
   type DayType = "active" | "libur" | "future" | "pre";
   const dayType: Record<number, DayType> = {};
 
@@ -237,14 +245,27 @@ async function addClassSheetToWorkbook(
         cell.value = "L";
         cell.font  = LIBUR_FONT;
         cell.fill  = LIBUR_FILL as ExcelJS.Fill;
+      } else if (dt === "future" || dt === "pre") {
+        cell.font = TNR(10);
       } else if (st && st !== "H") {
+        // Keterangan eksplisit: I, S, atau A
         cell.value = st;
         cell.font  = TNR(10, true);
         if (st === "I") cI++;
         else if (st === "S") cS++;
         else if (st === "A") cA++;
-      } else {
-        cell.font = TNR(10);
+      } else if (!st || st === "H") {
+        // Hari aktif: jika tidak ada record (atau hadir) dan sudah lewat hari ini → alpa otomatis
+        const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        if (!st && dateStr < todayStr) {
+          // Tidak ada record sama sekali di hari yang sudah lewat = alpa
+          cell.value = "A";
+          cell.font  = TNR(10, true);
+          cA++;
+        } else {
+          // Hadir (H) atau hari ini tanpa record = kosong (hadir)
+          cell.font = TNR(10);
+        }
       }
     }
 

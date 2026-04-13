@@ -1,8 +1,7 @@
 import { memo, useState, useEffect } from "react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Calendar, Clock, Moon, Sun, PanelLeft, Maximize, Minimize } from "lucide-react";
-import { useFullscreen } from "@/hooks/useFullscreen";
+import { Calendar, Clock, Moon, Sun, PanelLeft } from "lucide-react";
 
 interface AdminHeaderProps {
   collapsed: boolean;
@@ -42,7 +41,6 @@ LiveClock.displayName = "LiveClock";
 
 const AdminHeader = memo(({ onToggleSidebar }: AdminHeaderProps) => {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
-  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -83,19 +81,6 @@ const AdminHeader = memo(({ onToggleSidebar }: AdminHeaderProps) => {
           data-testid="button-toggle-darkmode"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-
-        {/* Fullscreen toggle — mobile only (hidden on md+) */}
-        <button
-          onClick={toggleFullscreen}
-          className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors"
-          title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-          data-testid="button-toggle-fullscreen"
-        >
-          {isFullscreen
-            ? <Minimize className="h-4 w-4" />
-            : <Maximize className="h-4 w-4" />
-          }
         </button>
       </div>
     </header>
