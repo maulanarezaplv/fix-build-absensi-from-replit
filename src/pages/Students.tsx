@@ -246,137 +246,174 @@ const Students = () => {
   }, [students, filterClassId, debouncedSearch, sortClassName]);
 
   const fetchImageAsDataURL = (url: string): Promise<string> => {
+    // Gunakan proxy server agar tidak terkena CORS saat fetch Google Drive / URL eksternal
+    const proxiedUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
     return new Promise((resolve) => {
       const img = new Image();
-      img.crossOrigin = "anonymous";
       img.onload = () => {
         try {
           const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
+          canvas.width = img.naturalWidth || 200;
+          canvas.height = img.naturalHeight || 250;
           const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/jpeg"));
+          resolve(canvas.toDataURL("image/jpeg", 0.92));
         } catch {
           resolve("");
         }
       };
       img.onerror = () => resolve("");
-      img.src = url;
+      img.src = proxiedUrl;
     });
   };
 
   const drawCardToPdf = async (doc: jsPDF, student: any, className: string, x: number, y: number) => {
-    const appSubtitle = webConfig?.app_subtitle || "SEKOLAH";
+    const appSubtitle = webConfig?.app_subtitle || "SMP Negeri 1 Kebakkramat";
     const cardW = 90;
     const cardH = 55;
+    const headerH = 15;
 
-    doc.setDrawColor(200, 200, 200);
-    doc.roundedRect(x, y, cardW, cardH, 2, 2);
+    // ── Border kartu (rounded) ──
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, y, cardW, cardH, 2.5, 2.5);
 
-    doc.setFillColor(26, 58, 122);
-    doc.roundedRect(x, y, cardW, 14, 2, 2, "F");
-    doc.rect(x, y + 10, cardW, 4, "F");
+    // ── Header navy ──
+    doc.setFillColor(20, 52, 120);
+    doc.roundedRect(x, y, cardW, headerH, 2.5, 2.5, "F");
+    doc.rect(x, y + headerH - 4, cardW, 4, "F"); // tutup sudut bawah header
 
+    // ── Garis emas di bawah header ──
     doc.setFillColor(245, 158, 11);
-    doc.rect(x, y + 14, cardW, 1, "F");
+    doc.rect(x, y + headerH, cardW, 1.2, "F");
 
+    // ── Teks header ──
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("KARTU PELAJAR", x + cardW / 2, y + 7, { align: "center" });
-    doc.setFontSize(6);
+    doc.setFontSize(10.5);
+    doc.text("KARTU PELAJAR", x + cardW / 2, y + 6.5, { align: "center" });
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(200, 220, 255);
     doc.text(appSubtitle, x + cardW / 2, y + 12, { align: "center" });
 
+    // ── QR Code ──
     const qrData = student.nis || student.id || "";
     let qrDataUrl = "";
     try {
-      if (qrData) qrDataUrl = await QRCode.toDataURL(qrData, { width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" } });
+      if (qrData) qrDataUrl = await QRCode.toDataURL(qrData, {
+        width: 220, margin: 1,
+        color: { dark: "#111111", light: "#ffffff" },
+        errorCorrectionLevel: "M",
+      });
     } catch { }
 
-    const qrSize = 22;
-    const qrX = x + 6;
-    const qrY = y + 19;
+    const qrSize = 23;
+    const qrX = x + 5;
+    const qrY = y + headerH + 3;
+
     if (qrDataUrl) {
+      // Kotak putih di belakang QR agar jelas saat cetak
+      doc.setFillColor(255, 255, 255);
+      doc.rect(qrX - 0.5, qrY - 0.5, qrSize + 1, qrSize + 1, "F");
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
     }
-    doc.setTextColor(150, 150, 150);
-    doc.setFontSize(4);
-    doc.text("Scan untuk Absensi", qrX + qrSize / 2, qrY + qrSize + 3, { align: "center" });
 
-    const photoW = 20;
-    const photoH = 24;
-    const photoX = x + cardW - photoW - 5;
-    const photoY = y + 17;
+    // Label scan (di bawah QR)
+    doc.setTextColor(140, 140, 140);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(4);
+    doc.text("Scan untuk Absensi", qrX + qrSize / 2, qrY + qrSize + 2.5, { align: "center" });
+
+    // ── Foto siswa ──
+    const photoW = 21;
+    const photoH = 26;
+    const photoX = x + cardW - photoW - 4;
+    const photoY = y + headerH + 2.5;
 
     const rawPhotoUrl = student.photo_url || "";
+    let photoLoaded = false;
     if (rawPhotoUrl) {
       const convertedUrl = convertGDriveLink(rawPhotoUrl);
       const photoDataUrl = await fetchImageAsDataURL(convertedUrl);
       if (photoDataUrl) {
-        doc.setDrawColor(220, 220, 220);
+        photoLoaded = true;
+        // Border foto
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.3);
         doc.rect(photoX, photoY, photoW, photoH);
         doc.addImage(photoDataUrl, "JPEG", photoX, photoY, photoW, photoH);
-      } else {
-        doc.setFillColor(230, 230, 230);
-        doc.rect(photoX, photoY, photoW, photoH, "F");
-        doc.setTextColor(160, 160, 160);
-        doc.setFontSize(5);
-        doc.text("FOTO", photoX + photoW / 2, photoY + photoH / 2, { align: "center" });
       }
-    } else {
-      doc.setFillColor(230, 230, 230);
+    }
+    if (!photoLoaded) {
+      // Placeholder abu-abu bergradasi
+      doc.setFillColor(238, 238, 238);
       doc.rect(photoX, photoY, photoW, photoH, "F");
-      doc.setTextColor(160, 160, 160);
-      doc.setFontSize(5);
-      doc.text("FOTO", photoX + photoW / 2, photoY + photoH / 2, { align: "center" });
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.rect(photoX, photoY, photoW, photoH);
+      // Ikon kamera kecil (orang)
+      doc.setFillColor(195, 195, 195);
+      const cx = photoX + photoW / 2;
+      const cy = photoY + photoH / 2 - 2;
+      doc.circle(cx, cy - 3, 3, "F");           // kepala
+      doc.ellipse(cx, cy + 4, 5, 3.5, "F");     // badan
+      // Teks FOTO
+      doc.setTextColor(165, 165, 165);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.text("FOTO", cx, photoY + photoH - 2.5, { align: "center" });
     }
 
+    // ── Info siswa ──
     const infoX = qrX + qrSize + 5;
-    const infoMaxW = photoX - infoX - 3;
+    const infoMaxW = photoX - infoX - 2;
+    const infoStartY = y + headerH + 5;
 
-    // Nama — font size otomatis mengecil agar nama sepanjang apapun muat dalam 2 baris
-    doc.setTextColor(20, 20, 20);
+    // Nama siswa (auto shrink)
+    doc.setTextColor(15, 15, 15);
     doc.setFont("helvetica", "bold");
     let nameLines: string[] = [];
-    let chosenFontSize = 7.5;
-    for (let fs = 7.5; fs >= 5; fs -= 0.5) {
+    let nameFontSize = 8;
+    for (let fs = 8; fs >= 5; fs -= 0.5) {
       doc.setFontSize(fs);
       const lines: string[] = doc.splitTextToSize(student.name.toUpperCase(), infoMaxW);
-      if (lines.length <= 2) {
-        chosenFontSize = fs;
-        nameLines = lines;
-        break;
-      }
+      if (lines.length <= 2) { nameFontSize = fs; nameLines = lines; break; }
       nameLines = lines.slice(0, 2);
     }
-    doc.setFontSize(chosenFontSize);
-    const nameLineH = chosenFontSize < 6.5 ? 3.2 : 3.8;
-    const nameStartY = y + 21;
+    doc.setFontSize(nameFontSize);
+    const lineH = nameFontSize < 6.5 ? 3.3 : 4;
     nameLines.forEach((line: string, i: number) => {
-      doc.text(line, infoX, nameStartY + i * nameLineH);
+      doc.text(line, infoX, infoStartY + i * lineH);
     });
 
-    // NIS — tampil hanya jika ada
-    const afterNameY = nameStartY + nameLines.length * nameLineH + 2;
-    let kelasY = afterNameY + 1;
+    // Garis tipis di bawah nama
+    const afterNameY = infoStartY + nameLines.length * lineH + 1.5;
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.2);
+    doc.line(infoX, afterNameY, photoX - 2, afterNameY);
+
+    // NIS
+    let detailY = afterNameY + 4;
     if (student.nis) {
-      doc.setFontSize(5.5);
+      doc.setFontSize(6);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(130, 130, 130);
-      doc.text("NIS: " + student.nis, infoX, afterNameY);
-      kelasY = afterNameY + 4;
+      doc.setTextColor(100, 100, 100);
+      doc.text("NIS", infoX, detailY);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont("helvetica", "bold");
+      doc.text(": " + student.nis, infoX + 7, detailY);
+      detailY += 4.5;
     }
-    const labelW = 9;
+
+    // Kelas
     doc.setFontSize(6.5);
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
-    doc.text("Kelas", infoX, kelasY);
-    doc.text(":", infoX + labelW, kelasY);
+    doc.text("Kelas", infoX, detailY);
+    doc.setTextColor(20, 52, 120);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(20, 20, 20);
-    doc.text(className, infoX + labelW + 2.5, kelasY);
+    doc.text(": " + className, infoX + 7, detailY);
   };
 
   const downloadCard = async (student: any, className: string) => {

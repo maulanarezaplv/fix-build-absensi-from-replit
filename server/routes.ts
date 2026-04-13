@@ -919,4 +919,33 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ---- Proxy gambar (untuk PDF kartu pelajar — bypass CORS) ----
+  app.get("/api/proxy-image", async (req: Request, res: Response) => {
+    const url = req.query.url as string;
+    if (!url) return void res.status(400).json({ error: "Missing url" });
+
+    let parsed: URL;
+    try { parsed = new URL(url); } catch { return void res.status(400).json({ error: "Invalid URL" }); }
+
+    const allowedHosts = ["drive.google.com", "lh3.googleusercontent.com", "googleusercontent.com", "docs.google.com"];
+    if (!allowedHosts.some(d => parsed.hostname === d || parsed.hostname.endsWith("." + d))) {
+      return void res.status(403).json({ error: "Host not allowed" });
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; E-Absensi/1.0)" },
+        redirect: "follow",
+      });
+      if (!response.ok) return void res.status(response.status).json({ error: "Upstream error" });
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      const buffer = await response.arrayBuffer();
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(Buffer.from(buffer));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
 }
