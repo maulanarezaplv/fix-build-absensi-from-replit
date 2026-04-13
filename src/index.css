@@ -282,3 +282,13 @@ body {
 .overflow-y-auto {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Padding bawah konten admin: BottomNav (4rem) + safe area HP */
+.admin-main-content {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .admin-main-content {
+    padding-bottom: 0;
+  }
+}

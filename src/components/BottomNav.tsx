@@ -73,6 +73,7 @@ const BottomNav = memo(() => {
 
   const navBg: React.CSSProperties = {
     background: "linear-gradient(180deg, hsl(230 25% 14%) 0%, hsl(220 30% 8%) 100%)",
+    paddingBottom: "env(safe-area-inset-bottom)",
   };
 
   return (

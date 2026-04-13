@@ -72,8 +72,8 @@ const AdminLayout = () => {
         {/* Banner install PWA — hanya muncul di HP jika belum install */}
         <PWAInstallBanner />
 
-        {/* Konten utama — pb-16 agar tidak tertutup BottomNav di HP */}
-        <main className="flex-1 overflow-y-auto bg-background pb-16 md:pb-0">
+        {/* Konten utama — pb agar tidak tertutup BottomNav + safe area di HP */}
+        <main className="flex-1 overflow-y-auto bg-background admin-main-content">
           <div className="p-3 md:p-6">
             <Outlet />
           </div>
