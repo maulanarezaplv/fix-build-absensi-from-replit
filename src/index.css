@@ -265,6 +265,19 @@ body {
   -webkit-backface-visibility: hidden;
 }
 
+/* ── Ticker bar: teks berjalan dari kanan ke kiri ── */
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: inline-block;
+  animation: tickerScroll 28s linear infinite;
+  will-change: transform;
+  padding-right: 4rem;
+}
+
 /* Momentum scroll di iOS agar scroll terasa native */
 .overflow-y-auto {
   -webkit-overflow-scrolling: touch;

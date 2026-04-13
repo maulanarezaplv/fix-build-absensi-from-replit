@@ -10,6 +10,7 @@ import { convertGDriveLink } from "@/lib/gdrive";
 import { getWebConfig } from "@/lib/queryClient";
 
 const Login = () => {
+  const [logoError, setLogoError] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -59,8 +60,13 @@ const Login = () => {
         <div className="flex flex-col items-center pt-6 pb-5 px-6 text-center">
           {/* Logo */}
           <div className="mb-3">
-            {logoUrl
-              ? <img src={logoUrl} alt="Logo" className="w-20 h-20 object-contain" />
+            {logoUrl && !logoError
+              ? <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="w-20 h-20 object-contain"
+                  onError={() => setLogoError(true)}
+                />
               : <div className="w-20 h-20 flex items-center justify-center"><GraduationCap className="h-12 w-12 text-violet-600" /></div>}
           </div>
 

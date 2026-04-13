@@ -23,6 +23,7 @@ import {
 const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 const Index = () => {
+  const [logoError, setLogoError] = useState(false);
   const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
   const [studentOpen, setStudentOpen] = useState(false);
@@ -164,8 +165,13 @@ const Index = () => {
         <div className="flex flex-col items-center pt-6 pb-5 px-6 text-center">
           {/* Logo */}
           <div className="mb-3">
-            {logoUrl
-              ? <img src={logoUrl} alt="Logo" className="w-20 h-20 object-contain" />
+            {logoUrl && !logoError
+              ? <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="w-20 h-20 object-contain"
+                  onError={() => setLogoError(true)}
+                />
               : <div className="w-20 h-20 flex items-center justify-center"><GraduationCap className="h-12 w-12 text-violet-600" /></div>}
           </div>
 

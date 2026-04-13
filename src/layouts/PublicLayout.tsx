@@ -5,9 +5,30 @@ import { convertGDriveLink } from "@/lib/gdrive";
 import { getWebConfig } from "@/lib/queryClient";
 import bgSchool1 from "@/assets/bg-school-1.jpg";
 import bgSchool2 from "@/assets/bg-school-2.jpg";
+import { GraduationCap, Star } from "lucide-react";
 
 const INTERVAL_MS = 6000;
 const TRANSITION_MS = 900;
+
+// ── Ticker bawah layar (desktop only) ─────────────────────────────────────────
+const TickerBar = ({ text }: { text: string }) => {
+  // Duplikat teks agar loop terasa seamless
+  const repeated = Array(6).fill(text).join("   ✦   ");
+  return (
+    <div
+      className="hidden md:flex fixed bottom-0 left-0 right-0 h-8 items-center overflow-hidden border-t border-white/10 select-none"
+      style={{
+        zIndex: 10,
+        background: "linear-gradient(90deg, rgba(10,10,30,0.82) 0%, rgba(20,20,50,0.88) 100%)",
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      <div className="ticker-track whitespace-nowrap text-white/80 text-[11px] font-medium tracking-widest uppercase">
+        {repeated}
+      </div>
+    </div>
+  );
+};
 
 const PublicLayout = () => {
   const [bgIndex, setBgIndex] = useState(0);
@@ -67,9 +88,13 @@ const PublicLayout = () => {
     backgroundRepeat: "no-repeat",
   });
 
+  const appTitle    = webConfig?.app_title    || "E-ABSENSI";
+  const appSubtitle = webConfig?.app_subtitle || "Sistem Absensi Sekolah";
+  const tickerText  = `${appTitle}  —  ${appSubtitle}  —  Selamat datang di sistem absensi digital`;
+
   return (
     // Kontainer fixed ke viewport → background fixed berjalan smooth, konten scrollable di dalamnya
-    <div className="fixed inset-0 overflow-y-auto overscroll-none" style={{ WebkitOverflowScrolling: "touch" }}>
+    <div className="fixed inset-0 overflow-y-auto overscroll-none" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
 
       {/* Gambar lama — animasi keluar */}
       {prevIndex !== null && (
@@ -92,13 +117,16 @@ const PublicLayout = () => {
 
       {/* Konten halaman — min-h-full agar tetap bisa scroll jika konten lebih panjang dari viewport */}
       <div
-        className="relative min-h-full flex items-center justify-center py-6 px-4"
+        className="relative min-h-full flex items-center justify-center py-6 px-4 md:pb-10"
         style={{ zIndex: 3 }}
       >
         <div className="w-full max-w-sm">
           <Outlet />
         </div>
       </div>
+
+      {/* Ticker teks berjalan — hanya tampil di desktop */}
+      <TickerBar text={tickerText} />
     </div>
   );
 };
