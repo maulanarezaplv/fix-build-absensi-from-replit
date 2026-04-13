@@ -46,7 +46,6 @@ const Reports = () => {
   const queryClient = useQueryClient();
   useRealtimeSubscription("attendance_records", [["report-records"]]);
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [classId, setClassId] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -116,15 +115,14 @@ const Reports = () => {
   };
 
   const { data: records = [] } = useQuery({
-    queryKey: ["report-records", startDate, endDate, classId],
+    queryKey: ["report-records", startDate, classId],
     queryFn: async () => {
       const queryDate = startDate || format(new Date(), "yyyy-MM-dd");
-      const queryEndDate = endDate || queryDate;
       const classParam = classId !== "all" ? `&class_id=${classId}` : "";
 
       const [validationRes, hadirRes] = await Promise.all([
-        fetch(`/api/attendance?start_date=${queryDate}&end_date=${queryEndDate}&status=izin,sakit&validation_status=approved${classParam}`, { credentials: "include" }).then(r => r.json()),
-        fetch(`/api/attendance?start_date=${queryDate}&end_date=${queryEndDate}&status=hadir,alpa${classParam}`, { credentials: "include" }).then(r => r.json()),
+        fetch(`/api/attendance?start_date=${queryDate}&end_date=${queryDate}&status=izin,sakit&validation_status=approved${classParam}`, { credentials: "include" }).then(r => r.json()),
+        fetch(`/api/attendance?start_date=${queryDate}&end_date=${queryDate}&status=hadir,alpa${classParam}`, { credentials: "include" }).then(r => r.json()),
       ]);
 
       return [...validationRes, ...hadirRes];
@@ -303,17 +301,12 @@ const Reports = () => {
   };
 
   const getFilenameSuffix = () => {
-    const d = startDate || format(new Date(), "yyyy-MM-dd");
-    return endDate && endDate !== d ? `${d}_sd_${endDate}` : d;
+    return startDate || format(new Date(), "yyyy-MM-dd");
   };
 
   const getReportTitle = () => {
     const d = startDate || format(new Date(), "yyyy-MM-dd");
-    const dFmt = format(new Date(d + "T00:00:00"), "dd MMMM yyyy", { locale: idLocale });
-    if (endDate && endDate !== d) {
-      return `${dFmt} s.d. ${format(new Date(endDate + "T00:00:00"), "dd MMMM yyyy", { locale: idLocale })}`;
-    }
-    return dFmt;
+    return format(new Date(d + "T00:00:00"), "dd MMMM yyyy", { locale: idLocale });
   };
 
   const getKelasLabel = () => {
@@ -642,10 +635,6 @@ const Reports = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dari Tanggal</label>
               <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full lg:w-44 bg-background" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sampai Tanggal</label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full lg:w-44 bg-background" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filter Kelas</label>
