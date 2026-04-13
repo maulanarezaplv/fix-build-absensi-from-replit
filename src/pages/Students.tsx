@@ -270,8 +270,8 @@ const Students = () => {
   const drawCardToPdf = async (doc: jsPDF, student: any, className: string, x: number, y: number) => {
     const appSubtitle = webConfig?.app_subtitle || "SMP Negeri 1 Kebakkramat";
     const cardW = 90;
-    const cardH = 55;
-    const headerH = 15;
+    const cardH = 57;
+    const headerH = 20;
 
     // ── Border kartu (rounded) ──
     doc.setDrawColor(180, 180, 180);
@@ -291,11 +291,18 @@ const Students = () => {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10.5);
-    doc.text("KARTU PELAJAR", x + cardW / 2, y + 6.5, { align: "center" });
+    doc.text("KARTU PELAJAR", x + cardW / 2, y + 8, { align: "center" });
+    // Nama sekolah — ukuran font sama dengan judul (10.5pt), auto-shrink jika terlalu panjang
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    doc.setTextColor(200, 220, 255);
-    doc.text(appSubtitle, x + cardW / 2, y + 12, { align: "center" });
+    let subtitleFontSize = 10.5;
+    for (let fs = 10.5; fs >= 6; fs -= 0.5) {
+      doc.setFontSize(fs);
+      const w = doc.getTextWidth(appSubtitle);
+      if (w <= cardW - 8) { subtitleFontSize = fs; break; }
+    }
+    doc.setFontSize(subtitleFontSize);
+    doc.setTextColor(255, 255, 255);
+    doc.text(appSubtitle, x + cardW / 2, y + 15.5, { align: "center" });
 
     // ── QR Code ──
     const qrData = student.nis || student.id || "";
@@ -426,7 +433,7 @@ const Students = () => {
   const downloadAllCards = async (classItems: any[], className: string) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const cardW = 90;
-    const cardH = 55;
+    const cardH = 57;
     const marginX = 10;
     const marginY = 10;
     const gapX = 5;

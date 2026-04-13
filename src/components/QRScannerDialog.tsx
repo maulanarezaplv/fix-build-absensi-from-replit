@@ -80,6 +80,7 @@ const QRScannerDialog = ({
   const [overlay, setOverlay] = useState<ScanResult | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [switching, setSwitching] = useState(false);
+  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isStartingRef = useRef(false);
   const lastScanTimeRef = useRef(0);
@@ -207,7 +208,7 @@ const QRScannerDialog = ({
     await startScanner(next);
   };
 
-  // Saat dialog scan dibuka: aktifkan Wake Lock (layar tidak mati) + fullscreen otomatis
+  // Saat dialog dibuka
   useEffect(() => {
     if (open) {
       setScanCount(0);
@@ -216,19 +217,21 @@ const QRScannerDialog = ({
       setFacingMode("environment");
       lastScannedCodeRef.current = "";
       processingRef.current = false;
-      startScanner("environment");
 
-      // Cegah layar mati selama scan
       requestWakeLock();
-      // Auto fullscreen di mobile saat scan dibuka
+
+      // Di HP: tampilkan prompt fullscreen dulu, baru buka kamera
       const isMobile = window.innerWidth < 768;
       if (isMobile) {
-        enterFullscreen();
+        setShowFullscreenPrompt(true);
+      } else {
+        setShowFullscreenPrompt(false);
+        startScanner("environment");
       }
     } else {
       stopScanner();
       releaseWakeLock();
-      // Keluar fullscreen saat dialog ditutup
+      setShowFullscreenPrompt(false);
       if (document.fullscreenElement) {
         exitFullscreen();
       }
@@ -245,100 +248,150 @@ const QRScannerDialog = ({
     onOpenChange(false);
   };
 
+  // Tombol "Ya, Layar Penuh" — harus dipanggil dari event klik (user gesture)
+  const handleActivateFullscreen = () => {
+    enterFullscreen();
+    setShowFullscreenPrompt(false);
+    startScanner("environment");
+  };
+
+  // Tombol "Lanjutkan tanpa Layar Penuh"
+  const handleSkipFullscreen = () => {
+    setShowFullscreenPrompt(false);
+    startScanner("environment");
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => {
       if (!v) stopScanner();
       onOpenChange(v);
     }}>
-      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg rounded-2xl p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-2">
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg rounded-2xl p-0 overflow-hidden max-h-[95dvh] flex flex-col">
+        <DialogHeader className="p-4 pb-2 flex-shrink-0">
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-sm">
               <Camera className="h-4 w-4" />
               {title}
             </DialogTitle>
-            <div className="flex items-center gap-1.5">
-              {/* Tombol fullscreen — khusus mobile */}
-              <button
-                onClick={() => isFullscreen ? exitFullscreen() : enterFullscreen()}
-                className="md:hidden flex items-center gap-1 text-xs text-muted-foreground border border-border rounded-lg px-2 py-1 hover:bg-muted transition-colors"
-                title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-                data-testid="button-scan-fullscreen"
-              >
-                {isFullscreen
-                  ? <Minimize className="h-3.5 w-3.5" />
-                  : <Maximize className="h-3.5 w-3.5" />
-                }
-              </button>
-              {/* Tombol ganti kamera */}
-              <button
-                onClick={switchCamera}
-                disabled={switching}
-                title={facingMode === "environment" ? "Ganti ke kamera depan" : "Ganti ke kamera belakang"}
-                className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-2.5 py-1 hover:bg-primary/10 disabled:opacity-50 transition-colors"
-              >
-                <FlipHorizontal2 className={`h-3.5 w-3.5 ${switching ? "animate-spin" : ""}`} />
-                {switching ? "Ganti..." : facingMode === "environment" ? "Depan" : "Belakang"}
-              </button>
-            </div>
+            {!showFullscreenPrompt && (
+              <div className="flex items-center gap-1.5">
+                {/* Tombol fullscreen — khusus mobile, hanya tampil saat kamera aktif */}
+                <button
+                  onClick={() => isFullscreen ? exitFullscreen() : enterFullscreen()}
+                  className="md:hidden flex items-center gap-1 text-xs text-muted-foreground border border-border rounded-lg px-2 py-1 hover:bg-muted transition-colors"
+                  title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+                  data-testid="button-scan-fullscreen"
+                >
+                  {isFullscreen
+                    ? <Minimize className="h-3.5 w-3.5" />
+                    : <Maximize className="h-3.5 w-3.5" />
+                  }
+                </button>
+                {/* Tombol ganti kamera */}
+                <button
+                  onClick={switchCamera}
+                  disabled={switching}
+                  title={facingMode === "environment" ? "Ganti ke kamera depan" : "Ganti ke kamera belakang"}
+                  className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-2.5 py-1 hover:bg-primary/10 disabled:opacity-50 transition-colors"
+                >
+                  <FlipHorizontal2 className={`h-3.5 w-3.5 ${switching ? "animate-spin" : ""}`} />
+                  {switching ? "Ganti..." : facingMode === "environment" ? "Depan" : "Belakang"}
+                </button>
+              </div>
+            )}
           </div>
           <DialogDescription className="text-xs">{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="px-4 pb-4">
-          {overlay && (
-            <div className="mb-2">
-              <div
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-lg ${
-                  overlay.success
-                    ? "bg-emerald-500 text-white"
-                    : "bg-red-500 text-white"
-                }`}
+        {/* Prompt Fullscreen — muncul di HP sebelum kamera dibuka */}
+        {showFullscreenPrompt ? (
+          <div className="flex flex-col items-center gap-5 px-6 py-8 flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Maximize className="h-8 w-8 text-primary" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="text-base font-semibold">Gunakan Layar Penuh?</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Mode layar penuh memberikan tampilan kamera yang lebih luas
+                dan nyaman saat proses scan berlangsung.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 w-full">
+              <Button
+                className="w-full"
+                onClick={handleActivateFullscreen}
+                data-testid="button-fullscreen-yes"
               >
-                {overlay.success ? (
-                  <CheckCircle2 className="h-6 w-6 shrink-0" strokeWidth={2.5} />
-                ) : (
-                  <XCircle className="h-6 w-6 shrink-0" strokeWidth={2.5} />
-                )}
-                <div className="min-w-0">
-                  <span className="text-sm font-bold block leading-tight truncate">
-                    {overlay.message}
-                  </span>
-                  {overlay.studentName && (
-                    <span className="text-xs opacity-90 truncate block">{overlay.studentName}</span>
+                <Maximize className="h-4 w-4 mr-2" />
+                Ya, Aktifkan Layar Penuh
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleSkipFullscreen}
+                data-testid="button-fullscreen-skip"
+              >
+                Lanjutkan Tanpa Layar Penuh
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* Area kamera + kontrol */
+          <div className="px-4 pb-4 flex-1 overflow-y-auto min-h-0">
+            {overlay && (
+              <div className="mb-2">
+                <div
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-lg ${
+                    overlay.success
+                      ? "bg-emerald-500 text-white"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {overlay.success ? (
+                    <CheckCircle2 className="h-6 w-6 shrink-0" strokeWidth={2.5} />
+                  ) : (
+                    <XCircle className="h-6 w-6 shrink-0" strokeWidth={2.5} />
                   )}
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold block leading-tight truncate">
+                      {overlay.message}
+                    </span>
+                    {overlay.studentName && (
+                      <span className="text-xs opacity-90 truncate block">{overlay.studentName}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div
-            id={QR_READER_ID}
-            className="w-full rounded-xl overflow-hidden bg-black"
-            style={{ minHeight: "clamp(280px, 55vw, 420px)" }}
-          />
+            <div
+              id={QR_READER_ID}
+              className="w-full rounded-xl overflow-hidden bg-black"
+              style={{ height: "clamp(220px, 50vw, 400px)" }}
+            />
 
-          {scanCount > 0 && (
-            <div className="mt-2 flex items-center justify-between text-xs bg-emerald-500/10 text-emerald-700 rounded-lg px-3 py-2">
-              <span>✅ Terakhir: {lastScanned}</span>
-              <Badge className="bg-emerald-500 text-white text-[10px] px-1.5">{scanCount} scan</Badge>
-            </div>
-          )}
+            {scanCount > 0 && (
+              <div className="mt-2 flex items-center justify-between text-xs bg-emerald-500/10 text-emerald-700 rounded-lg px-3 py-2">
+                <span>✅ Terakhir: {lastScanned}</span>
+                <Badge className="bg-emerald-500 text-white text-[10px] px-1.5">{scanCount} scan</Badge>
+              </div>
+            )}
 
-          {error && (
-            <div className="mt-3 text-xs text-destructive text-center bg-destructive/10 rounded-lg p-3">
-              {error}
-            </div>
-          )}
-          <Button
-            variant="outline"
-            className="w-full mt-3"
-            onClick={handleClose}
-            data-testid="button-close-scanner"
-          >
-            <X className="h-4 w-4 mr-1" /> Tutup Kamera
-          </Button>
-        </div>
+            {error && (
+              <div className="mt-3 text-xs text-destructive text-center bg-destructive/10 rounded-lg p-3">
+                {error}
+              </div>
+            )}
+            <Button
+              variant="outline"
+              className="w-full mt-3"
+              onClick={handleClose}
+              data-testid="button-close-scanner"
+            >
+              <X className="h-4 w-4 mr-1" /> Tutup Kamera
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
