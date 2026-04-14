@@ -1,84 +1,41 @@
-import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import AdminLayout from "@/layouts/AdminLayout";
 import RequireAdmin from "@/components/RequireAdmin";
 
-const Dashboard         = lazy(() => import("@/pages/Dashboard"));
-const Classes           = lazy(() => import("@/pages/Classes"));
-const Students          = lazy(() => import("@/pages/Students"));
-const History           = lazy(() => import("@/pages/History"));
-const Validation        = lazy(() => import("@/pages/Validation"));
-const AttendanceSettings= lazy(() => import("@/pages/AttendanceSettings"));
-const GuruPiket         = lazy(() => import("@/pages/GuruPiket"));
-const Reports           = lazy(() => import("@/pages/Reports"));
-const UserManagement    = lazy(() => import("@/pages/UserManagement"));
-const WebConfig         = lazy(() => import("@/pages/WebConfig"));
-const RekapBulanan      = lazy(() => import("@/pages/RekapBulanan"));
-const WhatsAppReport    = lazy(() => import("@/pages/WhatsAppReport"));
-const DataReset         = lazy(() => import("@/pages/DataReset"));
-const Tutorial          = lazy(() => import("@/pages/Tutorial"));
-
-// Preload semua chunk admin di background setelah render pertama
-// agar navigasi berikutnya instan tanpa loading
-function usePreloadAdminChunks() {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      import("@/pages/Classes");
-      import("@/pages/Students");
-      import("@/pages/History");
-      import("@/pages/Validation");
-      import("@/pages/AttendanceSettings");
-      import("@/pages/GuruPiket");
-      import("@/pages/Reports");
-      import("@/pages/UserManagement");
-      import("@/pages/WebConfig");
-      import("@/pages/RekapBulanan");
-      import("@/pages/WhatsAppReport");
-      import("@/pages/DataReset");
-      import("@/pages/Tutorial");
-    }, 1500); // tunda 1.5 detik agar render pertama tidak terganggu
-    return () => clearTimeout(timer);
-  }, []);
-}
-
-const PageLoader = () => (
-  <div className="p-3 md:p-6 space-y-4 animate-pulse">
-    <div className="h-8 w-48 rounded-lg bg-muted" />
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="h-24 rounded-xl bg-muted" />
-      ))}
-    </div>
-    <div className="h-64 rounded-xl bg-muted" />
-    <div className="h-48 rounded-xl bg-muted" />
-  </div>
-);
-
-// Wrapper untuk Dashboard yang juga memicu preload
-const DashboardWithPreload = () => {
-  usePreloadAdminChunks();
-  return <Dashboard />;
-};
+import Dashboard          from "@/pages/Dashboard";
+import Classes            from "@/pages/Classes";
+import Students           from "@/pages/Students";
+import History            from "@/pages/History";
+import Validation         from "@/pages/Validation";
+import AttendanceSettings from "@/pages/AttendanceSettings";
+import GuruPiket          from "@/pages/GuruPiket";
+import Reports            from "@/pages/Reports";
+import UserManagement     from "@/pages/UserManagement";
+import WebConfig          from "@/pages/WebConfig";
+import RekapBulanan       from "@/pages/RekapBulanan";
+import WhatsAppReport     from "@/pages/WhatsAppReport";
+import DataReset          from "@/pages/DataReset";
+import Tutorial           from "@/pages/Tutorial";
 
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
-      <Route index element={<Suspense fallback={<PageLoader />}><DashboardWithPreload /></Suspense>} />
-      <Route path="validation" element={<Suspense fallback={<PageLoader />}><Validation /></Suspense>} />
-      <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
-      <Route path="rekap" element={<Suspense fallback={<PageLoader />}><RekapBulanan /></Suspense>} />
-      <Route path="history" element={<Suspense fallback={<PageLoader />}><History /></Suspense>} />
+      <Route index element={<Dashboard />} />
+      <Route path="validation" element={<Validation />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="rekap" element={<RekapBulanan />} />
+      <Route path="history" element={<History />} />
 
       <Route element={<RequireAdmin />}>
-        <Route path="classes" element={<Suspense fallback={<PageLoader />}><Classes /></Suspense>} />
-        <Route path="students" element={<Suspense fallback={<PageLoader />}><Students /></Suspense>} />
-        <Route path="settings" element={<Suspense fallback={<PageLoader />}><AttendanceSettings /></Suspense>} />
-        <Route path="guru-piket" element={<Suspense fallback={<PageLoader />}><GuruPiket /></Suspense>} />
-        <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
-        <Route path="config" element={<Suspense fallback={<PageLoader />}><WebConfig /></Suspense>} />
-        <Route path="whatsapp-report" element={<Suspense fallback={<PageLoader />}><WhatsAppReport /></Suspense>} />
-        <Route path="reset" element={<Suspense fallback={<PageLoader />}><DataReset /></Suspense>} />
-        <Route path="tutorial" element={<Suspense fallback={<PageLoader />}><Tutorial /></Suspense>} />
+        <Route path="classes" element={<Classes />} />
+        <Route path="students" element={<Students />} />
+        <Route path="settings" element={<AttendanceSettings />} />
+        <Route path="guru-piket" element={<GuruPiket />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="config" element={<WebConfig />} />
+        <Route path="whatsapp-report" element={<WhatsAppReport />} />
+        <Route path="reset" element={<DataReset />} />
+        <Route path="tutorial" element={<Tutorial />} />
       </Route>
     </Route>
   </Routes>
