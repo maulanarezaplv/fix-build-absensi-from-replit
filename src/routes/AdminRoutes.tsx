@@ -19,8 +19,15 @@ const DataReset         = lazy(() => import("@/pages/DataReset"));
 const Tutorial          = lazy(() => import("@/pages/Tutorial"));
 
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-40">
-    <div className="h-7 w-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+  <div className="p-3 md:p-6 space-y-4 animate-pulse">
+    <div className="h-8 w-48 rounded-lg bg-muted" />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-24 rounded-xl bg-muted" />
+      ))}
+    </div>
+    <div className="h-64 rounded-xl bg-muted" />
+    <div className="h-48 rounded-xl bg-muted" />
   </div>
 );
 
