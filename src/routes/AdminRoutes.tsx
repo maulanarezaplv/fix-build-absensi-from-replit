@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import AdminLayout from "@/layouts/AdminLayout";
 import RequireAdmin from "@/components/RequireAdmin";
@@ -18,6 +18,29 @@ const WhatsAppReport    = lazy(() => import("@/pages/WhatsAppReport"));
 const DataReset         = lazy(() => import("@/pages/DataReset"));
 const Tutorial          = lazy(() => import("@/pages/Tutorial"));
 
+// Preload semua chunk admin di background setelah render pertama
+// agar navigasi berikutnya instan tanpa loading
+function usePreloadAdminChunks() {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import("@/pages/Classes");
+      import("@/pages/Students");
+      import("@/pages/History");
+      import("@/pages/Validation");
+      import("@/pages/AttendanceSettings");
+      import("@/pages/GuruPiket");
+      import("@/pages/Reports");
+      import("@/pages/UserManagement");
+      import("@/pages/WebConfig");
+      import("@/pages/RekapBulanan");
+      import("@/pages/WhatsAppReport");
+      import("@/pages/DataReset");
+      import("@/pages/Tutorial");
+    }, 1500); // tunda 1.5 detik agar render pertama tidak terganggu
+    return () => clearTimeout(timer);
+  }, []);
+}
+
 const PageLoader = () => (
   <div className="p-3 md:p-6 space-y-4 animate-pulse">
     <div className="h-8 w-48 rounded-lg bg-muted" />
@@ -31,10 +54,16 @@ const PageLoader = () => (
   </div>
 );
 
+// Wrapper untuk Dashboard yang juga memicu preload
+const DashboardWithPreload = () => {
+  usePreloadAdminChunks();
+  return <Dashboard />;
+};
+
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
-      <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+      <Route index element={<Suspense fallback={<PageLoader />}><DashboardWithPreload /></Suspense>} />
       <Route path="validation" element={<Suspense fallback={<PageLoader />}><Validation /></Suspense>} />
       <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
       <Route path="rekap" element={<Suspense fallback={<PageLoader />}><RekapBulanan /></Suspense>} />
