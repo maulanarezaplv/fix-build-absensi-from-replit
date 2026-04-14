@@ -283,6 +283,12 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Top loading bar shimmer */
+@keyframes loadingBarShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Padding bawah konten admin: BottomNav (4rem) + safe area HP */
 .admin-main-content {
   padding-bottom: calc(4rem + env(safe-area-inset-bottom));

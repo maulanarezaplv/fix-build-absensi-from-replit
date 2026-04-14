@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AdminSidebar, { useSidebarCollapse } from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
 import BottomNav from "@/components/BottomNav";
+import TopLoadingBar from "@/components/TopLoadingBar";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Download, X, Smartphone } from "lucide-react";
 
@@ -57,6 +58,9 @@ const AdminLayout = () => {
 
   return (
     <div className="flex overflow-hidden" style={{ height: "100dvh" }}>
+      {/* Indikator loading navigasi antar halaman */}
+      <TopLoadingBar />
+
       {/* Desktop sidebar — hanya tampil di layar lebar */}
       <AdminSidebar
         collapsed={collapsed}
