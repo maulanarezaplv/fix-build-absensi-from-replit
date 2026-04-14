@@ -124,9 +124,11 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
           updated_at: null,
         };
         _set("web-config", fallback, 2 * 60_000);
+        res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
         return res.json(fallback);
       }
       _set("web-config", config, 2 * 60_000);
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
       res.json(config);
     } catch (e: any) {
       res.json({
@@ -950,7 +952,7 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
       const contentType = response.headers.get("content-type") || "image/jpeg";
       const buffer = await response.arrayBuffer();
       res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=3600");
       res.send(Buffer.from(buffer));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
