@@ -3,13 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import { useFullscreen } from "@/hooks/useFullscreen";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  CheckCircle2, LogIn, LogOut, Send, Clock, QrCode, Camera, CheckCheck, Trash2, Package, ClipboardList, CalendarOff,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  CheckCircle2, LogIn, LogOut, Send, Clock, QrCode, Camera, CheckCheck, Trash2, Package, ClipboardList, CalendarOff, Maximize,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -62,6 +66,8 @@ const History = () => {
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [manualName, setManualName] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [fullscreenPromptOpen, setFullscreenPromptOpen] = useState(false);
+  const { enter: enterFullscreen, exit: exitFullscreen } = useFullscreen();
 
   const [checkinBuffer, setCheckinBuffer] = useState<BufferedCheckin[]>(() => {
     try { return JSON.parse(sessionStorage.getItem("checkinBuffer") || "[]"); } catch { return []; }
@@ -560,7 +566,7 @@ const History = () => {
                     toast({ title: isHoliday ? "Hari Libur" : "Waktu absensi ditutup", description: isHoliday ? (holidayInfo?.description || "Absensi ditutup pada hari libur") : getTimeBlockMessage(), variant: "destructive" });
                     return;
                   }
-                  setScannerOpen(true);
+                  setFullscreenPromptOpen(true);
                 }}
                 disabled={!canSubmit}
                 className="w-full text-white hover:opacity-90 bg-gradient-to-r from-[hsl(168,71%,35%)] to-[hsl(142,71%,38%)] h-12 text-base"
@@ -724,7 +730,7 @@ const History = () => {
                       toast({ title: isHoliday ? "Hari Libur" : "Waktu absensi ditutup", description: isHoliday ? (holidayInfo?.description || "Absensi ditutup pada hari libur") : getTimeBlockMessage(), variant: "destructive" });
                       return;
                     }
-                    setScannerOpen(true);
+                    setFullscreenPromptOpen(true);
                   }}
                   disabled={!canSubmit}
                   className="w-full text-white hover:opacity-90 bg-gradient-to-r from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)]"
@@ -788,9 +794,54 @@ const History = () => {
         </div>
       )}
 
+      {/* Dialog Prompt Fullscreen sebelum buka kamera */}
+      <Dialog open={fullscreenPromptOpen} onOpenChange={setFullscreenPromptOpen}>
+        <DialogContent className="w-[88vw] max-w-xs rounded-2xl p-6 text-center">
+          <DialogHeader>
+            <div className="flex justify-center mb-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)]">
+                <Maximize className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-base">Aktifkan Layar Penuh?</DialogTitle>
+            <DialogDescription className="text-xs mt-1">
+              Mode layar penuh membuat tampilan kamera lebih luas dan nyaman untuk scan QR.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex flex-col gap-2">
+            <Button
+              className="w-full text-white bg-gradient-to-r from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)]"
+              onClick={async () => {
+                setFullscreenPromptOpen(false);
+                await enterFullscreen();
+                setScannerOpen(true);
+              }}
+              data-testid="button-fullscreen-confirm"
+            >
+              <Maximize className="h-4 w-4 mr-2" />
+              Aktifkan Layar Penuh
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground text-xs"
+              onClick={() => {
+                setFullscreenPromptOpen(false);
+                setScannerOpen(true);
+              }}
+              data-testid="button-fullscreen-skip"
+            >
+              Lewati, buka kamera biasa
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <QRScannerDialog
         open={scannerOpen}
-        onOpenChange={setScannerOpen}
+        onOpenChange={(v) => {
+          setScannerOpen(v);
+          if (!v) exitFullscreen();
+        }}
         onScan={handleQRScan}
       />
     </div>
