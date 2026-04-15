@@ -95,6 +95,7 @@ const Login = () => {
                   autoComplete="username"
                 />
               </div>
+              <p className="text-[11px] text-slate-400">Default admin: admin / admin123</p>
             </div>
 
             <div className="space-y-1.5">
