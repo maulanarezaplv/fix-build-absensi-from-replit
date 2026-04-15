@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { convertGDriveLink } from "@/lib/gdrive";
 import { getWebConfig } from "@/lib/queryClient";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -87,7 +88,13 @@ const SidebarContent = memo(({
 
   const { data: sidebarPiket = [] } = useQuery({
     queryKey: ["my-piket-sidebar", (user as any)?.id],
-    queryFn: () => fetch(`/api/guru-piket?user_id=${(user as any)?.id}`, { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("guru_piket_assignments")
+        .select("day_of_week, profiles!inner(user_id)")
+        .eq("profiles.user_id", (user as any)?.id);
+      return data ?? [];
+    },
     enabled: !!(user as any)?.id && !isAdmin,
     staleTime: 60_000,        // 1 menit — agar perubahan jadwal piket segera terlihat
     refetchOnMount: true,     // Selalu cek ulang saat sidebar dimount

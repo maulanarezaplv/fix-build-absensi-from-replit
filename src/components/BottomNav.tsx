@@ -7,6 +7,7 @@ import { LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -45,7 +46,13 @@ const BottomNav = memo(() => {
 
   const { data: navPiket = [] } = useQuery({
     queryKey: ["my-piket-sidebar", (user as any)?.id],
-    queryFn: () => fetch(`/api/guru-piket?user_id=${(user as any)?.id}`, { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("guru_piket_assignments")
+        .select("day_of_week, profiles!inner(user_id)")
+        .eq("profiles.user_id", (user as any)?.id);
+      return data ?? [];
+    },
     enabled: !!(user as any)?.id && !isAdmin,
     staleTime: 60_000,
   });

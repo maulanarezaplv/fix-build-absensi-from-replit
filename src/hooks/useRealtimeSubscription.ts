@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type TableName =
   | "attendance_records"
@@ -18,7 +19,7 @@ const listeners = new Map<string, Set<(table: string) => void>>();
 
 function getSharedES(): EventSource {
   if (!sharedES || sharedES.readyState === EventSource.CLOSED) {
-    sharedES = new EventSource("/api/events");
+    sharedES = new EventSource(`${supabase.supabaseUrl}/realtime/v1/websocket`);
     sharedES.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
