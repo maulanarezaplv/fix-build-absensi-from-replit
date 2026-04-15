@@ -216,112 +216,26 @@ const Tutorial = () => {
                 <Server className="h-4 w-4" />
                 <span className="text-sm font-bold">TAHAP B</span>
               </div>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pengaturan di Server Aplikasi</span>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pengaturan di Aplikasi</span>
             </div>
 
-            <StepItem number={6} title="Tambahkan ke File .env Server">
-              {/* Apa itu .env */}
-              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-3 py-2 mb-3">
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">📄 Apa itu file .env?</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  File <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded">.env</code> adalah file konfigurasi rahasia yang berisi kode-kode penting untuk server (seperti password, API key, dsb). File ini <strong>tidak terlihat langsung</strong> karena namanya diawali titik (.) — ini normal di sistem Linux/server.
-                </p>
-              </div>
-
-              {/* Lokasi file */}
-              <p className="font-semibold text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">📍 Di Mana Letak File .env?</p>
-              <p className="mb-2">File <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">.env</code> ada di <strong>folder utama (root) proyek E-Absensi</strong> — satu tingkat dengan folder <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">server/</code>, <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">client/</code>, dan <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">shared/</code>.</p>
-
-              <div className="rounded-lg bg-slate-900 px-3 py-2 font-mono text-xs space-y-0.5 mb-3">
-                <div className="text-yellow-400">📁 e-absensi/  ← folder utama proyek</div>
-                <div className="text-emerald-400 pl-4">📄 .env  ← INI DIA yang perlu diedit</div>
-                <div className="text-slate-500 pl-4">📄 .env.example  ← contoh/template</div>
-                <div className="text-slate-500 pl-4">📁 server/</div>
-                <div className="text-slate-500 pl-4">📁 client/</div>
-                <div className="text-slate-500 pl-4">📁 shared/</div>
-              </div>
-
-              {/* Cara menemukan berdasarkan jenis hosting */}
-              <p className="font-semibold text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">🖥️ Cara Membuka File .env (Pilih Sesuai Jenis Server)</p>
-
-              <div className="space-y-2">
-                {/* VPS Linux */}
-                <div className="rounded-lg border border-blue-200 dark:border-blue-800/50 overflow-hidden">
-                  <div className="bg-blue-50 dark:bg-blue-950/30 px-3 py-2 flex items-center gap-2">
-                    <span className="text-blue-600 font-bold text-xs">① VPS / Server Linux (SSH/Terminal)</span>
-                  </div>
-                  <div className="px-3 py-2 space-y-1 text-xs">
-                    <p>Buka terminal/SSH, masuk ke folder proyek, lalu jalankan:</p>
-                    <CopyBox code={`cd /home/user/e-absensi\nls -la         # untuk melihat file tersembunyi (.env)\nnano .env      # untuk mengedit`} />
-                    <p className="text-muted-foreground">Jika file <code>.env</code> belum ada, buat dulu dengan: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">cp .env.example .env</code></p>
-                  </div>
-                </div>
-
-                {/* cPanel */}
-                <div className="rounded-lg border border-orange-200 dark:border-orange-800/50 overflow-hidden">
-                  <div className="bg-orange-50 dark:bg-orange-950/30 px-3 py-2 flex items-center gap-2">
-                    <span className="text-orange-600 font-bold text-xs">② cPanel / Panel Hosting</span>
-                  </div>
-                  <div className="px-3 py-2 space-y-1 text-xs">
-                    {ol([
-                      'Login ke cPanel hosting Anda.',
-                      'Buka menu "File Manager".',
-                      'Masuk ke folder tempat E-Absensi diupload (biasanya di public_html/ atau folder khusus).',
-                      'Di pojok kanan atas File Manager, centang opsi "Show Hidden Files (dotfiles)".',
-                      'Cari file bernama .env → klik kanan → Edit.',
-                    ])}
-                  </div>
-                </div>
-
-                {/* Replit */}
-                <div className="rounded-lg border border-violet-200 dark:border-violet-800/50 overflow-hidden">
-                  <div className="bg-violet-50 dark:bg-violet-950/30 px-3 py-2 flex items-center gap-2">
-                    <span className="text-violet-600 font-bold text-xs">③ Replit (Platform Online)</span>
-                  </div>
-                  <div className="px-3 py-2 space-y-1 text-xs">
-                    <p className="font-semibold text-emerald-700 dark:text-emerald-400">✅ Di Replit TIDAK perlu file .env!</p>
-                    {ol([
-                      'Di sidebar kiri Replit, klik ikon 🔒 "Secrets".',
-                      'Klik tombol "New Secret".',
-                      'Key: GOOGLE_CLIENT_ID → Value: paste Client ID dari Langkah 5.',
-                      'Tambah secret lagi: Key: GOOGLE_CLIENT_SECRET → Value: paste Client Secret.',
-                      'Tambah lagi: Key: GOOGLE_REDIRECT_URI → Value: isi URL callback.',
-                      'Klik "Add Secret" → selesai, tidak perlu restart manual.',
-                    ])}
-                  </div>
-                </div>
-
-                {/* Windows lokal */}
-                <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                  <div className="bg-slate-50 dark:bg-slate-800/50 px-3 py-2 flex items-center gap-2">
-                    <span className="text-slate-600 dark:text-slate-300 font-bold text-xs">④ Komputer Lokal (Windows)</span>
-                  </div>
-                  <div className="px-3 py-2 space-y-1 text-xs">
-                    {ol([
-                      'Buka Windows Explorer → masuk ke folder proyek e-absensi.',
-                      'Di address bar Explorer, ketik: %appdata% lalu tekan Enter (opsional, hanya untuk mencari).',
-                      'Di folder proyek, aktifkan "Show hidden items" (View → Hidden items ✓).',
-                      'Cari file .env → klik kanan → Open with → pilih Notepad atau VS Code.',
-                    ])}
-                    <Tip>Jika file tidak terlihat di Windows Explorer, buka VS Code → File → Open Folder → arahkan ke folder proyek → file .env akan terlihat di panel kiri.</Tip>
-                  </div>
-                </div>
-              </div>
-
-              {/* Isi yang harus ditambahkan */}
-              <p className="font-semibold text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wide mt-3 mb-1">✏️ Isi yang Perlu Ditambahkan</p>
-              <p className="mb-1">Setelah file <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">.env</code> terbuka, tambahkan/ubah baris ini:</p>
-              <CopyBox code={`GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com\nGOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxx\nGOOGLE_REDIRECT_URI=https://absensi.smpn1contoh.sch.id/api/auth/google/callback`} />
-              <Warn>Pastikan domain di GOOGLE_REDIRECT_URI <strong>sama persis</strong> dengan yang Anda isi di Google Cloud pada Langkah 4. Tidak boleh ada perbedaan satu huruf pun.</Warn>
-              <Tip>Tidak tahu domain/alamat server Anda? Lihat di address bar browser saat membuka aplikasi E-Absensi. Contoh: jika URL-nya <strong>https://absensi.smpn1contoh.sch.id</strong>, maka GOOGLE_REDIRECT_URI diisi <strong>https://absensi.smpn1contoh.sch.id/api/auth/google/callback</strong></Tip>
+            <StepItem number={6} title="Tambahkan Konfigurasi Aplikasi">
+              {ol([
+                "Buka halaman project di Lovable.",
+                "Masuk ke pengaturan environment variables / secrets.",
+                "Tambahkan variabel yang dibutuhkan aplikasi.",
+              ])}
+              <CopyBox code={`VITE_SUPABASE_URL=https://xxxxx.supabase.co\nVITE_SUPABASE_ANON_KEY=eyJ...\nVITE_APP_URL=https://project-kamu.lovable.app`} />
+              <Tip>Di Lovable, konfigurasi disimpan sebagai environment variables, bukan file .env.</Tip>
             </StepItem>
 
-            <StepItem number={7} title="Restart Server">
+            <StepItem number={7} title="Jalankan Ulang Aplikasi">
               {ol([
-                'Restart server aplikasi E-Absensi Anda.',
-                '(Jika pakai panel hosting: klik Restart NodeJS. Jika di komputer lokal: matikan terminal dan nyalakan ulang.)',
-                'Tunggu beberapa detik sampai server berjalan kembali.',
+                'Simpan perubahan environment variables.',
+                'Reload preview atau jalankan ulang project.',
+                'Login ulang untuk memastikan konfigurasi terbaca.',
               ])}
+              <Warn>Setelah perubahan environment, refresh aplikasi agar setting baru aktif.</Warn>
             </StepItem>
           </div>
 
