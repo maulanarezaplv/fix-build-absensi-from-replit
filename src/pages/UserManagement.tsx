@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,8 @@ import { UserCog, Eye, EyeOff, Pencil, Trash2, RefreshCw, Users, ShieldCheck, Us
 import { FaUserGraduate } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UserData {
   id: string;
@@ -45,14 +46,18 @@ const EditUserDialog = ({
   const qc = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", `/api/users/${user.id}`, {
-      name: editName,
-      username: editUsername,
-      ...(editPassword ? { password: editPassword } : {}),
-      role: editRole,
-    }),
+    mutationFn: async () => {
+      const updates: Record<string, any> = {
+        name: editName,
+        username: editUsername,
+        roles: [editRole],
+      };
+      if (editPassword) updates.password = editPassword;
+      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ title: "Pengguna berhasil diperbarui" });
       onOpenChange(false);
     },
@@ -115,9 +120,7 @@ const EditUserDialog = ({
           <div className="space-y-2">
             <Label className="font-bold">Role</Label>
             <Select value={editRole} onValueChange={(v) => setEditRole(v as "admin" | "guru")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="guru">Guru</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
@@ -125,9 +128,7 @@ const EditUserDialog = ({
             </Select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Batal
-            </Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
             <Button
               type="submit"
               disabled={updateMutation.isPending}
@@ -155,18 +156,43 @@ const UserManagement = () => {
   const [batchRole, setBatchRole] = useState<"admin" | "guru">("guru");
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   const batchNames = batchText.split("\n").map((n) => n.trim()).filter(Boolean);
 
   const { data: users = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["users-with-roles"],
-    queryFn: () => fetch("/api/users", { credentials: "include" }).then(r => r.json()),
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("*").order("name");
+      return data ?? [];
+    },
   });
 
   const createSingleMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/users", { username, password, name, role }),
+    mutationFn: async () => {
+      if (!username || !password || !name) throw new Error("Semua field wajib diisi");
+      const email = `${username.toLowerCase().trim()}@eabsensi.internal`;
+      const { data: savedSession } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name, username: username.toLowerCase().trim(), role } } });
+      if (error) throw new Error(error.message);
+      if (!data.user) throw new Error("Gagal membuat pengguna");
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        user_id: data.user.id,
+        username: username.toLowerCase().trim(),
+        name,
+        password,
+        roles: [role],
+      }, { onConflict: "user_id" });
+      if (profileError) throw new Error(profileError.message);
+      if (savedSession.session) {
+        await supabase.auth.setSession({
+          access_token: savedSession.session.access_token,
+          refresh_token: savedSession.session.refresh_token,
+        });
+      }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ title: "Pengguna berhasil dibuat" });
       setOpen(false);
       setName(""); setUsername(""); setPassword(""); setRole("guru");
@@ -179,21 +205,39 @@ const UserManagement = () => {
     mutationFn: async () => {
       if (batchNames.length === 0) throw new Error("Masukkan minimal 1 nama");
       if (!batchPassword) throw new Error("Password wajib diisi");
+      const { data: savedSession } = await supabase.auth.getSession();
       const errors: string[] = [];
       for (const n of batchNames) {
         const uname = n.toLowerCase().replace(/\s+/g, "");
+        const email = `${uname}@eabsensi.internal`;
         try {
-          await apiRequest("POST", "/api/users", { username: uname, password: batchPassword, name: n, role: batchRole });
+          const { data, error } = await supabase.auth.signUp({ email, password: batchPassword, options: { data: { name: n, username: uname, role: batchRole } } });
+          if (error) { errors.push(`${n}: ${error.message}`); continue; }
+          if (data.user) {
+            await supabase.from("profiles").upsert({
+              user_id: data.user.id,
+              username: uname,
+              name: n,
+              password: batchPassword,
+              roles: [batchRole],
+            }, { onConflict: "user_id" });
+          }
         } catch (e: any) {
           errors.push(`${n}: ${e.message}`);
         }
+      }
+      if (savedSession.session) {
+        await supabase.auth.setSession({
+          access_token: savedSession.session.access_token,
+          refresh_token: savedSession.session.refresh_token,
+        });
       }
       if (errors.length > 0 && errors.length === batchNames.length) throw new Error(errors.join("\n"));
       if (errors.length > 0) toast({ title: "Sebagian gagal", description: errors.join(", "), variant: "destructive" });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
-      toast({ title: `${batchNames.length} pengguna berhasil dibuat` });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: `Pengguna berhasil dibuat` });
       setOpen(false);
       setBatchText(""); setBatchPassword(""); setBatchRole("guru");
     },
@@ -202,22 +246,23 @@ const UserManagement = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (userId: string) => apiRequest("DELETE", `/api/users/${userId}`),
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.from("profiles").delete().eq("id", userId);
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ title: "Pengguna berhasil dihapus" });
     },
     onError: (e: Error) =>
       toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const adminCount = users.filter((u: any) => (u.roles || []).includes("admin")).length;
-  const guruCount  = users.filter((u: any) => (u.roles || []).includes("guru")).length;
+  const adminCount = (users as any[]).filter((u: any) => (u.roles || []).includes("admin")).length;
+  const guruCount = (users as any[]).filter((u: any) => (u.roles || []).includes("guru")).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
-
-      {/* ── Banner Header ── */}
       <div className="rounded-xl bg-gradient-to-r from-[hsl(315,70%,42%)] to-[hsl(260,68%,52%)] px-4 sm:px-6 py-4 sm:py-5 shadow-lg shadow-purple-700/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-white">
           <div className="flex items-center gap-2.5">
@@ -257,7 +302,6 @@ const UserManagement = () => {
                     Tambah Pengguna
                   </DialogTitle>
                 </DialogHeader>
-
                 <Tabs defaultValue="single">
                   <TabsList>
                     <TabsTrigger value="single" className="flex items-center gap-1.5">
@@ -366,7 +410,6 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* ── Stats mini ── */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950/40">
@@ -388,7 +431,6 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* ── Tabel ── */}
       <Card className="border border-border/60 shadow-sm overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-[hsl(315,70%,42%)]/10 dark:bg-[hsl(315,70%,42%)]/15 border-b border-border/60">
           <Users className="h-4 w-4 text-[hsl(315,70%,42%)] dark:text-[hsl(315,70%,65%)]" />
@@ -396,84 +438,85 @@ const UserManagement = () => {
             Daftar Guru &amp; Admin
           </span>
           <Badge className="ml-auto bg-[hsl(315,70%,42%)] text-white border-0 text-xs">
-            {users.length} pengguna
+            {(users as any[]).length} pengguna
           </Badge>
         </div>
         <CardContent className="p-0">
           {isLoading ? (
             <p className="text-muted-foreground text-center py-8">Memuat...</p>
-          ) : users.length === 0 ? (
+          ) : (users as any[]).length === 0 ? (
             <p className="text-muted-foreground text-center py-8">Belum ada pengguna</p>
           ) : (
             <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="w-10 font-bold hidden sm:table-cell">NO</TableHead>
-                  <TableHead className="font-bold">NAMA LENGKAP</TableHead>
-                  <TableHead className="font-bold hidden sm:table-cell">USERNAME</TableHead>
-                  <TableHead className="font-bold">ROLE</TableHead>
-                  <TableHead className="text-right font-bold">AKSI</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u: any, i: number) => (
-                  <TableRow key={u.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell className="text-muted-foreground font-medium hidden sm:table-cell">{i + 1}</TableCell>
-                    <TableCell>
-                      <p className="font-extrabold uppercase tracking-wide text-sm">{u.name}</p>
-                      <span className="sm:hidden font-mono text-xs text-[hsl(315,60%,45%)] dark:text-[hsl(315,60%,65%)]">@{u.username}</span>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <span className="font-mono text-sm font-semibold text-[hsl(315,60%,45%)] dark:text-[hsl(315,60%,65%)]">
-                        {u.username}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1.5">
-                        {(u.roles || []).map((r: string) => (
-                          <Badge
-                            key={r}
-                            className={
-                              r === "admin"
-                                ? "bg-red-600 hover:bg-red-600 text-white border-0 font-bold uppercase text-[11px] px-2"
-                                : "bg-violet-600 hover:bg-violet-600 text-white border-0 font-bold uppercase text-[11px] px-2"
-                            }
-                          >
-                            {r === "admin" ? <ShieldCheck className="h-2.5 w-2.5 mr-1" /> : <FaUserGraduate className="h-2.5 w-2.5 mr-1" />}
-                            {r.toUpperCase()}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                          onClick={() => setEditingUser(u as UserData)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                          onClick={() => {
-                            if (confirm(`Hapus pengguna ${u.name}?`)) {
-                              deleteMutation.mutate(u.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="w-10 font-bold hidden sm:table-cell">NO</TableHead>
+                    <TableHead className="font-bold">NAMA LENGKAP</TableHead>
+                    <TableHead className="font-bold hidden sm:table-cell">USERNAME</TableHead>
+                    <TableHead className="font-bold">ROLE</TableHead>
+                    <TableHead className="text-right font-bold">AKSI</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {(users as any[]).map((u: any, i: number) => (
+                    <TableRow key={u.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="text-muted-foreground font-medium hidden sm:table-cell">{i + 1}</TableCell>
+                      <TableCell>
+                        <p className="font-extrabold uppercase tracking-wide text-sm">{u.name}</p>
+                        <span className="sm:hidden font-mono text-xs text-[hsl(315,60%,45%)] dark:text-[hsl(315,60%,65%)]">@{u.username}</span>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <span className="font-mono text-sm font-semibold text-[hsl(315,60%,45%)] dark:text-[hsl(315,60%,65%)]">
+                          {u.username}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1.5">
+                          {(u.roles || []).map((r: string) => (
+                            <Badge
+                              key={r}
+                              className={
+                                r === "admin"
+                                  ? "bg-red-600 hover:bg-red-600 text-white border-0 font-bold uppercase text-[11px] px-2"
+                                  : "bg-violet-600 hover:bg-violet-600 text-white border-0 font-bold uppercase text-[11px] px-2"
+                              }
+                            >
+                              {r === "admin" ? <ShieldCheck className="h-2.5 w-2.5 mr-1" /> : <FaUserGraduate className="h-2.5 w-2.5 mr-1" />}
+                              {r.toUpperCase()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            onClick={() => setEditingUser(u as UserData)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            disabled={u.user_id === currentUser?.user_id}
+                            onClick={() => {
+                              if (confirm(`Hapus pengguna ${u.name}?`)) {
+                                deleteMutation.mutate(u.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

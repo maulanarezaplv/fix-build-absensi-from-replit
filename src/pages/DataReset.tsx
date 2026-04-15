@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,9 +12,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   DatabaseZap, ClipboardList, Users, BookUser, CalendarOff,
-  CalendarCheck, Trash2, TriangleAlert, CheckCircle2, ShieldOff, HardDriveUpload,
+  CalendarCheck, Trash2, TriangleAlert, CheckCircle2, ShieldOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ResetAction {
   id: string;
@@ -25,7 +24,6 @@ interface ResetAction {
   icon: any;
   color: string;
   iconBg: string;
-  endpoint: string;
   withYear?: boolean;
   confirmWord: string;
 }
@@ -38,7 +36,6 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: ClipboardList,
     color: "text-amber-600",
     iconBg: "bg-amber-50 dark:bg-amber-950/40",
-    endpoint: "/api/reset/attendance",
     withYear: true,
     confirmWord: "HAPUS ABSENSI",
   },
@@ -49,17 +46,15 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: Users,
     color: "text-blue-600",
     iconBg: "bg-blue-50 dark:bg-blue-950/40",
-    endpoint: "/api/reset/students",
     confirmWord: "HAPUS SISWA",
   },
   {
     id: "users",
     label: "Akun Guru",
-    desc: "Menghapus semua akun Guru. Akun Admin tetap aman dan tidak ikut terhapus.",
+    desc: "Menghapus semua akun Guru dari daftar. Akun Admin tetap aman.",
     icon: BookUser,
     color: "text-violet-600",
     iconBg: "bg-violet-50 dark:bg-violet-950/40",
-    endpoint: "/api/reset/users",
     confirmWord: "HAPUS GURU",
   },
   {
@@ -69,7 +64,6 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: CalendarOff,
     color: "text-orange-600",
     iconBg: "bg-orange-50 dark:bg-orange-950/40",
-    endpoint: "/api/reset/holidays",
     confirmWord: "HAPUS LIBUR",
   },
   {
@@ -79,7 +73,6 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: CalendarCheck,
     color: "text-teal-600",
     iconBg: "bg-teal-50 dark:bg-teal-950/40",
-    endpoint: "/api/reset/guru-piket",
     confirmWord: "HAPUS PIKET",
   },
 ];
@@ -93,26 +86,45 @@ const DataReset = () => {
   const [pendingAll, setPendingAll] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
-  const [backupYear, setBackupYear] = useState(String(new Date().getFullYear()));
   const [doneId, setDoneId] = useState<string | null>(null);
 
-  const backupAllMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/backup/drive/all-data", { year: backupYear }),
-    onSuccess: (data: any) => {
-      toast({ title: "✅ Backup berhasil!", description: `${data.filename} (${data.totalRecords} record) tersimpan di Google Drive.` });
-    },
-    onError: (e: Error) => toast({ title: "Backup gagal", description: e.message || "Pastikan Google Drive sudah terhubung di Konfigurasi", variant: "destructive" }),
-  });
-
   const resetMutation = useMutation({
-    mutationFn: ({ endpoint, year }: { endpoint: string; year?: string }) => {
-      const url = year ? `${endpoint}?year=${year}` : endpoint;
-      return apiRequest("DELETE", url);
+    mutationFn: async ({ id, year }: { id: string; year?: string }) => {
+      if (id === "attendance") {
+        if (year) {
+          const start = `${year}-01-01`;
+          const end = `${year}-12-31`;
+          const { error } = await supabase.from("attendance_records").delete().gte("date", start).lte("date", end);
+          if (error) throw new Error(error.message);
+        } else {
+          const { error } = await supabase.from("attendance_records").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          if (error) throw new Error(error.message);
+        }
+      } else if (id === "students") {
+        const { error } = await supabase.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (error) throw new Error(error.message);
+      } else if (id === "users") {
+        const { error } = await supabase.from("profiles").delete().not("roles", "cs", '["admin"]');
+        if (error) throw new Error(error.message);
+      } else if (id === "holidays") {
+        const { error } = await supabase.from("holidays").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (error) throw new Error(error.message);
+      } else if (id === "guru-piket") {
+        const { error } = await supabase.from("guru_piket_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (error) throw new Error(error.message);
+      } else if (id === "all") {
+        await Promise.all([
+          supabase.from("attendance_records").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
+          supabase.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
+          supabase.from("holidays").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
+          supabase.from("guru_piket_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
+          supabase.from("profiles").delete().not("roles", "cs", '["admin"]'),
+        ]);
+      }
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries();
-      const action = RESET_ACTIONS.find(a => a.endpoint === vars.endpoint);
-      setDoneId(action?.id || "all");
+      setDoneId(vars.id);
       setTimeout(() => setDoneId(null), 3000);
       toast({ title: "Berhasil dihapus", description: "Data telah dihapus dari sistem." });
     },
@@ -137,10 +149,10 @@ const DataReset = () => {
   const handleConfirm = () => {
     if (!isValid) return;
     if (pendingAll) {
-      resetMutation.mutate({ endpoint: "/api/reset/all" });
+      resetMutation.mutate({ id: "all" });
     } else if (pending) {
       resetMutation.mutate({
-        endpoint: pending.endpoint,
+        id: pending.id,
         year: pending.withYear && selectedYear ? selectedYear : undefined,
       });
     }
@@ -151,8 +163,6 @@ const DataReset = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-
-      {/* ── Banner ── */}
       <div className="rounded-xl bg-gradient-to-r from-red-600 to-rose-500 px-6 py-5 shadow-lg shadow-red-700/20">
         <div className="flex items-center gap-3 text-white">
           <DatabaseZap className="h-6 w-6 opacity-90" />
@@ -163,49 +173,6 @@ const DataReset = () => {
         </div>
       </div>
 
-      {/* ── Backup ke Google Drive ── */}
-      <Card className="border-blue-200 dark:border-blue-800/50 bg-blue-50/30 dark:bg-blue-950/10">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
-              <HardDriveUpload className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-bold text-sm">Backup Semua Data ke Google Drive</p>
-              <p className="text-xs text-muted-foreground">Simpan seluruh data absensi ke Drive sebelum melakukan reset</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Label className="text-xs text-muted-foreground whitespace-nowrap">Tahun:</Label>
-            <Input
-              data-testid="input-backup-year"
-              type="number"
-              value={backupYear}
-              onChange={e => setBackupYear(e.target.value)}
-              className="h-7 w-24 text-xs"
-              min={2020}
-              max={2099}
-            />
-            <Button
-              data-testid="button-backup-all-drive"
-              size="sm"
-              onClick={() => backupAllMutation.mutate()}
-              disabled={backupAllMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-            >
-              <HardDriveUpload className="h-3.5 w-3.5" />
-              {backupAllMutation.isPending ? "Membackup..." : "Backup ke Google Drive"}
-            </Button>
-            {backupAllMutation.isSuccess && (
-              <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Berhasil!
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Warning notice ── */}
       <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/50 px-4 py-3">
         <TriangleAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
@@ -217,7 +184,6 @@ const DataReset = () => {
         </div>
       </div>
 
-      {/* ── Individual reset cards ── */}
       <div className="grid gap-3 sm:grid-cols-2">
         {RESET_ACTIONS.map((action) => {
           const Icon = action.icon;
@@ -265,7 +231,6 @@ const DataReset = () => {
         })}
       </div>
 
-      {/* ── Nuclear / Reset All ── */}
       <Card className="border-2 border-red-400/60 dark:border-red-700/50 shadow-sm bg-red-50/50 dark:bg-red-950/20">
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
@@ -296,7 +261,6 @@ const DataReset = () => {
         </CardContent>
       </Card>
 
-      {/* ── Confirmation Dialog ── */}
       <AlertDialog
         open={pending !== null || pendingAll}
         onOpenChange={(o) => { if (!o) { setPending(null); setPendingAll(false); setConfirmInput(""); } }}

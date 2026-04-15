@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, getWebConfig } from "@/lib/queryClient";
+import { getWebConfig } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,11 @@ import { Search, Download, ChevronDown, Pencil, PowerOff, FileBarChart2, Calenda
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { supabase } from "@/integrations/supabase/client";
 
 type AttendanceStatus = "hadir" | "izin" | "sakit" | "alpa";
 
@@ -52,25 +50,28 @@ const Reports = () => {
   const isMobile = useIsMobile();
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ recordId, studentId, classId: cId, date, newStatus }: { recordId?: string; studentId: string; classId: string; date: string; newStatus: AttendanceStatus }) => {
+    mutationFn: async ({ recordId, studentId, classId: cId, date, newStatus }: {
+      recordId?: string; studentId: string; classId: string; date: string; newStatus: AttendanceStatus;
+    }) => {
       if (recordId) {
-        return apiRequest("PATCH", `/api/attendance/${recordId}`, { status: newStatus });
+        const { error } = await supabase.from("attendance_records").update({ status: newStatus }).eq("id", recordId);
+        if (error) throw new Error(error.message);
       } else {
-        return apiRequest("POST", "/api/attendance", {
-          records: [{
-            student_id: studentId,
-            class_id: cId,
-            date,
-            status: newStatus,
-            validation_status: "approved",
-          }]
+        const { error } = await supabase.from("attendance_records").insert({
+          student_id: studentId,
+          class_id: cId,
+          date,
+          status: newStatus,
+          validation_status: "approved",
         });
+        if (error) throw new Error(error.message);
       }
     },
     onSuccess: () => {
       toast.success("Status berhasil diubah");
       queryClient.invalidateQueries({ queryKey: ["report-records"] });
       queryClient.invalidateQueries({ queryKey: ["attendance-rekap"] });
+      queryClient.invalidateQueries({ queryKey: ["today-stats"] });
     },
     onError: () => {
       toast.error("Gagal mengubah status");
@@ -79,17 +80,26 @@ const Reports = () => {
 
   const { data: classes = [] } = useQuery({
     queryKey: ["classes"],
-    queryFn: () => fetch("/api/classes", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("*").order("name");
+      return data ?? [];
+    },
   });
 
   const { data: allStudents = [] } = useQuery({
     queryKey: ["all-students"],
-    queryFn: () => fetch("/api/students", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("students").select("*, classes(name)").order("name");
+      return data ?? [];
+    },
   });
 
   const { data: settings = [] } = useQuery({
     queryKey: ["attendance-settings"],
-    queryFn: () => fetch("/api/attendance-settings", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("attendance_settings").select("*");
+      return data ?? [];
+    },
   });
 
   const { data: webConfig } = useQuery<any>({
@@ -103,7 +113,10 @@ const Reports = () => {
 
   const { data: holidays = [] } = useQuery({
     queryKey: ["holidays"],
-    queryFn: () => fetch("/api/holidays", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("holidays").select("*");
+      return data ?? [];
+    },
   });
 
   const getHolidayForDate = (dateStr: string): any | null => {
@@ -118,14 +131,26 @@ const Reports = () => {
     queryKey: ["report-records", startDate, classId],
     queryFn: async () => {
       const queryDate = startDate || format(new Date(), "yyyy-MM-dd");
-      const classParam = classId !== "all" ? `&class_id=${classId}` : "";
+      let q1 = supabase
+        .from("attendance_records")
+        .select("*")
+        .eq("date", queryDate)
+        .in("status", ["izin", "sakit"])
+        .eq("validation_status", "approved");
 
-      const [validationRes, hadirRes] = await Promise.all([
-        fetch(`/api/attendance?start_date=${queryDate}&end_date=${queryDate}&status=izin,sakit&validation_status=approved${classParam}`, { credentials: "include" }).then(r => r.json()),
-        fetch(`/api/attendance?start_date=${queryDate}&end_date=${queryDate}&status=hadir,alpa${classParam}`, { credentials: "include" }).then(r => r.json()),
-      ]);
+      let q2 = supabase
+        .from("attendance_records")
+        .select("*")
+        .eq("date", queryDate)
+        .in("status", ["hadir", "alpa"]);
 
-      return [...validationRes, ...hadirRes];
+      if (classId !== "all") {
+        q1 = q1.eq("class_id", classId);
+        q2 = q2.eq("class_id", classId);
+      }
+
+      const [r1, r2] = await Promise.all([q1, q2]);
+      return [...(r1.data ?? []), ...(r2.data ?? [])];
     },
     staleTime: 0,
   });
@@ -134,11 +159,10 @@ const Reports = () => {
     const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     const date = new Date(dateStr);
     const dayName = DAY_NAMES_ID[date.getDay()];
-    return settings.find((s: any) => s.day_of_week === dayName);
+    return (settings as any[]).find((s: any) => s.day_of_week === dayName);
   };
 
   const isCheckInClosed = (dateStr: string): boolean => {
-    // Dates before school started are NOT counted as missed attendance
     if (schoolStartDate && dateStr < schoolStartDate) return false;
     const todayStr = format(new Date(), "yyyy-MM-dd");
     if (dateStr < todayStr) return true;
@@ -150,37 +174,25 @@ const Reports = () => {
     return nowTime > setting.check_in_end;
   };
 
-  // O(1) record lookup — menggantikan records.find() yang O(n) per siswa
   const recordMap = useMemo(() => {
     const map = new Map<string, any>();
-    records.forEach((r: any) => map.set(r.student_id, r));
+    (records as any[]).forEach((r: any) => map.set(r.student_id, r));
     return map;
   }, [records]);
 
   const groupedData = useMemo(() => {
     const dateToUse = startDate || format(new Date(), "yyyy-MM-dd");
-
-    let filteredStudents = allStudents;
-    if (classId !== "all") {
-      filteredStudents = allStudents.filter((s: any) => s.class_id === classId);
-    }
-
+    let filteredStudents = allStudents as any[];
+    if (classId !== "all") filteredStudents = filteredStudents.filter((s: any) => s.class_id === classId);
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
-      filteredStudents = filteredStudents.filter(
-        (s: any) => s.name.toLowerCase().includes(q) || s.classes?.name?.toLowerCase().includes(q)
-      );
+      filteredStudents = filteredStudents.filter((s: any) => s.name.toLowerCase().includes(q) || s.classes?.name?.toLowerCase().includes(q));
     }
-
     const classMap: Record<string, { className: string; classId: string; students: any[] }> = {};
-
     filteredStudents.forEach((student: any) => {
       const cId = student.class_id;
       const cName = student.classes?.name || "Tanpa Kelas";
-      if (!classMap[cId]) {
-        classMap[cId] = { className: cName, classId: cId, students: [] };
-      }
-
+      if (!classMap[cId]) classMap[cId] = { className: cName, classId: cId, students: [] };
       classMap[cId].students.push({
         id: student.id,
         name: student.name,
@@ -189,7 +201,6 @@ const Reports = () => {
         record: recordMap.get(student.id) ?? null,
       });
     });
-
     return Object.values(classMap).sort((a, b) => a.className.localeCompare(b.className));
   }, [allStudents, recordMap, classId, debouncedSearch, startDate]);
 
@@ -200,23 +211,17 @@ const Reports = () => {
   const getEffectiveStatus = (record: any, dateStr?: string): { label: string; isVirtualAlpa: boolean; isHoliday: boolean; holidayName?: string } => {
     if (dateStr) {
       const holiday = getHolidayForDate(dateStr);
-      if (holiday && !record) {
-        return { label: "Hari Libur", isVirtualAlpa: false, isHoliday: true, holidayName: holiday.description || holiday.name };
-      }
+      if (holiday && !record) return { label: "Hari Libur", isVirtualAlpa: false, isHoliday: true, holidayName: holiday.description || holiday.name };
     }
     if (!record) {
-      if (dateStr && isCheckInClosed(dateStr)) {
-        return { label: "Alpa", isVirtualAlpa: true, isHoliday: false };
-      }
+      if (dateStr && isCheckInClosed(dateStr)) return { label: "Alpa", isVirtualAlpa: true, isHoliday: false };
       return { label: "Belum Absen", isVirtualAlpa: false, isHoliday: false };
     }
     const map: Record<string, string> = { hadir: "Hadir", izin: "Izin", sakit: "Sakit", alpa: "Alpa" };
     return { label: map[record.status] || record.status, isVirtualAlpa: false, isHoliday: false };
   };
 
-  const getStatusLabel = (record: any, dateStr?: string) => {
-    return getEffectiveStatus(record, dateStr).label;
-  };
+  const getStatusLabel = (record: any, dateStr?: string) => getEffectiveStatus(record, dateStr).label;
 
   const getStatusBadgeClass = (record: any, dateStr?: string) => {
     const { isVirtualAlpa, isHoliday } = getEffectiveStatus(record, dateStr);
@@ -238,22 +243,17 @@ const Reports = () => {
     if (!record) {
       if (dateStr) {
         const holiday = getHolidayForDate(dateStr);
-        if (holiday) {
-          return { jamDatang: "-", jamPulang: "-", keterangan: "-", isLate: false, isHoliday: true };
-        }
+        if (holiday) return { jamDatang: "-", jamPulang: "-", keterangan: "-", isLate: false, isHoliday: true };
       }
       return { jamDatang: "-", jamPulang: "-", keterangan: "-", isLate: false, isHoliday: false };
     }
     if (record.status === "izin" || record.status === "sakit" || record.status === "alpa") {
       return { jamDatang: "-", jamPulang: "-", keterangan: "-", isLate: false, isHoliday: false };
     }
-
     const jamDatang = record.submitted_at ? format(new Date(record.submitted_at), "HH:mm") : "-";
     const jamPulang = record.check_out_at ? format(new Date(record.check_out_at), "HH:mm") : "-";
-
     let keterangan = "-";
     let isLate = false;
-
     if (record.submitted_at && record.date) {
       const setting = getSettingForDate(record.date);
       if (setting && setting.check_in_end) {
@@ -263,7 +263,6 @@ const Reports = () => {
           const [endH, endM] = setting.check_in_end.split(":").map(Number);
           const [actH, actM] = checkInTime.split(":").map(Number);
           const diffMinutes = (actH * 60 + actM) - (endH * 60 + endM);
-
           if (diffMinutes >= 60) {
             const hours = Math.floor(diffMinutes / 60);
             const mins = diffMinutes % 60;
@@ -274,9 +273,7 @@ const Reports = () => {
         }
       }
     }
-
     if (!isLate) keterangan = record.notes || "Tepat Waktu";
-
     return { jamDatang, jamPulang, keterangan, isLate, isHoliday: false };
   };
 
@@ -300,32 +297,21 @@ const Reports = () => {
     return rows;
   };
 
-  const getFilenameSuffix = () => {
-    return startDate || format(new Date(), "yyyy-MM-dd");
-  };
-
+  const getFilenameSuffix = () => startDate || format(new Date(), "yyyy-MM-dd");
   const getReportTitle = () => {
     const d = startDate || format(new Date(), "yyyy-MM-dd");
     return format(new Date(d + "T00:00:00"), "dd MMMM yyyy", { locale: idLocale });
   };
-
   const getKelasLabel = () => {
     if (classId === "all") return "Semua Kelas";
     const cls = (classes as any[]).find((c: any) => c.id === classId);
     return cls ? `Kelas ${cls.name}` : "Semua Kelas";
   };
 
-  const statusBgColor: Record<string, string> = {
-    Hadir: "#22c55e", Izin: "#3b82f6", Sakit: "#f59e0b", Alpa: "#ef4444",
-    "Belum Absen": "#d1d5db", "Hari Libur": "#a855f7",
-  };
-
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -333,287 +319,132 @@ const Reports = () => {
     const schoolName = webConfig?.app_subtitle || "SMP Negeri 1 Kebakkramat";
     const printDate = format(new Date(), "dd MMMM yyyy", { locale: idLocale });
     const printDateTime = format(new Date(), "dd MMMM yyyy, HH:mm 'WIB'", { locale: idLocale });
-
     const statusStyle: Record<string, string> = {
-      "Hadir":      "background:#22c55e;color:#fff;",
-      "Izin":       "background:#3b82f6;color:#fff;",
-      "Sakit":      "background:#f59e0b;color:#fff;",
-      "Alpa":       "background:#ef4444;color:#fff;",
+      "Hadir": "background:#22c55e;color:#fff;",
+      "Izin": "background:#3b82f6;color:#fff;",
+      "Sakit": "background:#f59e0b;color:#fff;",
+      "Alpa": "background:#ef4444;color:#fff;",
       "Hari Libur": "background:#a855f7;color:#fff;",
-      "Belum Absen":"background:#e5e7eb;color:#555;",
+      "Belum Absen": "background:#e5e7eb;color:#555;",
     };
-
     const bodyRows = rows.map((r, idx) => {
       const rowBg = idx % 2 !== 0 ? "background:#f5f5f5;" : "";
       const stStyle = statusStyle[r.status] || "background:#e5e7eb;color:#555;";
       const jamPulangLabel = r.jamPulang !== "-" ? `${r.jamPulang} (Sudah Pulang)` : "-";
-      return `<tr>
-        <td style="${rowBg}text-align:center;">${r.no}</td>
-        <td style="${rowBg}">${r.kelas}</td>
-        <td style="${rowBg}white-space:nowrap;">${r.tanggal}</td>
-        <td style="${rowBg}">${r.nama}</td>
-        <td style="${rowBg}text-align:center;">${r.jamDatang}</td>
-        <td style="${rowBg}">${r.keterangan !== "-" ? r.keterangan : ""}</td>
-        <td style="${rowBg}text-align:center;">${jamPulangLabel}</td>
-        <td style="${stStyle}text-align:center;font-weight:bold;">${r.status}</td>
-      </tr>`;
+      return `<tr><td style="${rowBg}text-align:center;">${r.no}</td><td style="${rowBg}">${r.kelas}</td><td style="${rowBg}white-space:nowrap;">${r.tanggal}</td><td style="${rowBg}">${r.nama}</td><td style="${rowBg}text-align:center;">${r.jamDatang}</td><td style="${rowBg}">${r.keterangan !== "-" ? r.keterangan : ""}</td><td style="${rowBg}text-align:center;">${jamPulangLabel}</td><td style="${stStyle}text-align:center;font-weight:bold;">${r.status}</td></tr>`;
     }).join("");
-
-    return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>
-  @page { size: A4 portrait; margin: 20mm 15mm 20mm 15mm; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Times New Roman", Times, serif; font-size: 11pt; color: #000; line-height: 1.5; }
-  .kop { text-align: center; margin-bottom: 6px; }
-  .kop-judul { font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3pt; margin-bottom: 3px; }
-  .kop-instansi { font-size: 12pt; font-weight: bold; margin-bottom: 2px; }
-  .kop-sub { font-size: 10pt; font-weight: normal; margin-bottom: 0; }
-  .garis-kop { height: 5px; border-top: 3pt solid #000; border-bottom: 1pt solid #000; margin: 8px 0 10px 0; }
-  table.data { border-collapse: collapse; width: 100%; font-size: 10pt; margin-top: 6px; }
-  table.data th { background: #d0d0d0; color: #000; padding: 5px 6px; border: 1pt solid #000; text-align: center; font-weight: bold; vertical-align: middle; font-size: 10pt; }
-  table.data td { padding: 4px 6px; border: 0.75pt solid #555; vertical-align: middle; font-size: 10pt; }
-  .footer-info { margin-top: 8px; font-size: 9pt; color: #444; }
-  table.ttd { width: 100%; border-collapse: collapse; margin-top: 30px; }
-  table.ttd td { border: none; padding: 2px 10px; font-size: 11pt; text-align: center; vertical-align: top; width: 50%; }
-  .ttd-line { margin-top: 44px; border-top: 1pt solid #000; padding-top: 4px; font-weight: bold; }
-  .ttd-nip { font-weight: normal; font-size: 10pt; margin-top: 2px; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style></head>
-<body>
-<div class="kop">
-  <div class="kop-judul">Laporan Harian Kehadiran Siswa</div>
-  <div class="kop-instansi">${schoolName}</div>
-  <div class="kop-sub">Tanggal: ${getReportTitle()} &nbsp;&nbsp;|&nbsp;&nbsp; ${getKelasLabel()}</div>
-</div>
-<div class="garis-kop"></div>
-<table class="data">
-  <thead>
-    <tr>
-      <th style="width:4%">No</th>
-      <th style="width:9%">Kelas</th>
-      <th style="width:11%">Tanggal</th>
-      <th style="width:24%">Nama Siswa</th>
-      <th style="width:8%">Jam Datang</th>
-      <th style="width:16%">Keterangan Waktu Datang</th>
-      <th style="width:10%">Jam Pulang</th>
-      <th style="width:9%">Status</th>
-    </tr>
-  </thead>
-  <tbody>${bodyRows}</tbody>
-</table>
-<div class="footer-info">Jumlah siswa: <strong>${rows.length} orang</strong> &nbsp;&nbsp;|&nbsp;&nbsp; Dicetak pada: ${printDateTime}</div>
-<table class="ttd">
-  <tr>
-    <td>
-      Mengetahui,<br>Kepala Sekolah
-      <div class="ttd-line">.................................................</div>
-      <div class="ttd-nip">NIP. .......................................</div>
-    </td>
-    <td>
-      Kebakkramat, ${printDate}<br>Guru / Wali Kelas
-      <div class="ttd-line">.................................................</div>
-      <div class="ttd-nip">NIP. .......................................</div>
-    </td>
-  </tr>
-</table>
-</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:A4 portrait;margin:20mm 15mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Times New Roman",Times,serif;font-size:11pt;color:#000;line-height:1.5}.kop{text-align:center;margin-bottom:6px}.kop-judul{font-size:14pt;font-weight:bold;text-transform:uppercase;letter-spacing:.3pt;margin-bottom:3px}.kop-instansi{font-size:12pt;font-weight:bold;margin-bottom:2px}.garis-kop{height:5px;border-top:3pt solid #000;border-bottom:1pt solid #000;margin:8px 0 10px}.footer-info{margin-top:8px;font-size:9pt;color:#444}table.data{border-collapse:collapse;width:100%;font-size:10pt;margin-top:6px}table.data th{background:#d0d0d0;color:#000;padding:5px 6px;border:1pt solid #000;text-align:center;font-weight:bold}table.data td{padding:4px 6px;border:.75pt solid #555}table.ttd{width:100%;border-collapse:collapse;margin-top:30px}table.ttd td{border:none;padding:2px 10px;font-size:11pt;text-align:center;width:50%}.ttd-line{margin-top:44px;border-top:1pt solid #000;padding-top:4px;font-weight:bold}.ttd-nip{font-weight:normal;font-size:10pt;margin-top:2px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="kop"><div class="kop-judul">Laporan Harian Kehadiran Siswa</div><div class="kop-instansi">${schoolName}</div><div class="kop-sub">Tanggal: ${getReportTitle()} | ${getKelasLabel()}</div></div><div class="garis-kop"></div><table class="data"><thead><tr><th style="width:4%">No</th><th style="width:9%">Kelas</th><th style="width:11%">Tanggal</th><th style="width:24%">Nama Siswa</th><th style="width:8%">Jam Datang</th><th style="width:16%">Keterangan</th><th style="width:10%">Jam Pulang</th><th style="width:9%">Status</th></tr></thead><tbody>${bodyRows}</tbody></table><div class="footer-info">Jumlah siswa: <strong>${rows.length} orang</strong> | Dicetak pada: ${printDateTime}</div><table class="ttd"><tr><td>Mengetahui,<br>Kepala Sekolah<div class="ttd-line">.................................................</div><div class="ttd-nip">NIP. .......................................</div></td><td>Kebakkramat, ${printDate}<br>Guru / Wali Kelas<div class="ttd-line">.................................................</div><div class="ttd-nip">NIP. .......................................</div></td></tr></table></body></html>`;
   };
 
   const exportExcel = () => {
     const rows = buildExportRows();
     if (rows.length === 0) { toast.error("Tidak ada data untuk diekspor"); return; }
-    const html = buildHTMLReport(rows);
-    downloadBlob(new Blob([html], { type: "application/vnd.ms-excel" }), `laporan-harian_${getFilenameSuffix()}.xls`);
+    downloadBlob(new Blob([buildHTMLReport(rows)], { type: "application/vnd.ms-excel" }), `laporan-harian_${getFilenameSuffix()}.xls`);
     toast.success("File Excel berhasil diunduh");
   };
 
   const exportWord = () => {
     const rows = buildExportRows();
     if (rows.length === 0) { toast.error("Tidak ada data untuk diekspor"); return; }
-    const html = buildHTMLReport(rows);
-    downloadBlob(new Blob(["\ufeff" + html], { type: "application/msword" }), `laporan-harian_${getFilenameSuffix()}.doc`);
+    downloadBlob(new Blob(["\ufeff" + buildHTMLReport(rows)], { type: "application/msword" }), `laporan-harian_${getFilenameSuffix()}.doc`);
     toast.success("File Word berhasil diunduh");
   };
 
   const exportPDF = () => {
     const rows = buildExportRows();
     if (rows.length === 0) { toast.error("Tidak ada data untuk diekspor"); return; }
-
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageWidth  = doc.internal.pageSize.getWidth();   // 210 mm
-    const pageHeight = doc.internal.pageSize.getHeight();  // 297 mm
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
     const schoolName = webConfig?.app_subtitle || "SMP Negeri 1 Kebakkramat";
-
-    // ── Kolom (total 180 mm) ──────────────────────────────────────────
     const colWidths = [7, 15, 22, 48, 16, 30, 24, 18];
     const colLabels = ["NO", "KELAS", "TANGGAL", "NAMA SISWA", "JAM\nDATANG", "KET. WAKTU\nDATANG", "JAM\nPULANG", "STATUS"];
-    const rowH    = 8;
-    const headerH = 11;
-    const lineH   = 3.5;
-
-    // ── KOP SURAT ─────────────────────────────────────────────────────
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.8);
+    const rowH = 8; const headerH = 11; const lineH = 3.5;
+    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.8);
     doc.line(margin, 11, pageWidth - margin, 11);
-    doc.setLineWidth(0.25);
-    doc.line(margin, 13, pageWidth - margin, 13);
-
-    doc.setFontSize(14);
-    doc.setFont("times", "bold");
-    doc.setTextColor(0, 0, 0);
+    doc.setLineWidth(0.25); doc.line(margin, 13, pageWidth - margin, 13);
+    doc.setFontSize(14); doc.setFont("times", "bold"); doc.setTextColor(0, 0, 0);
     doc.text("LAPORAN HARIAN KEHADIRAN SISWA", pageWidth / 2, 20, { align: "center" });
-
-    doc.setFontSize(12);
-    doc.text(schoolName.toUpperCase(), pageWidth / 2, 27, { align: "center" });
-
-    doc.setFontSize(9);
-    doc.setFont("times", "normal");
-    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(12); doc.text(schoolName.toUpperCase(), pageWidth / 2, 27, { align: "center" });
+    doc.setFontSize(9); doc.setFont("times", "normal"); doc.setTextColor(50, 50, 50);
     doc.text(`Tanggal: ${getReportTitle()}  |  ${getKelasLabel()}`, pageWidth / 2, 33, { align: "center" });
-    doc.setTextColor(0, 0, 0);
-
-    doc.setLineWidth(0.25);
-    doc.line(margin, 36.5, pageWidth - margin, 36.5);
-    doc.setLineWidth(0.8);
-    doc.line(margin, 38, pageWidth - margin, 38);
-
-    let y = 44;
-    let pageNum = 1;
-
-    // ── Footer tiap halaman ───────────────────────────────────────────
+    doc.setTextColor(0, 0, 0); doc.setLineWidth(0.25); doc.line(margin, 36.5, pageWidth - margin, 36.5);
+    doc.setLineWidth(0.8); doc.line(margin, 38, pageWidth - margin, 38);
+    let y = 44; let pageNum = 1;
     const addPageFooter = (pn: number) => {
-      doc.setFontSize(8);
-      doc.setFont("times", "normal");
-      doc.setTextColor(100, 100, 100);
-      doc.text(
-        `Dicetak: ${format(new Date(), "dd MMMM yyyy, HH:mm 'WIB'", { locale: idLocale })}`,
-        margin, pageHeight - 8
-      );
+      doc.setFontSize(8); doc.setFont("times", "normal"); doc.setTextColor(100, 100, 100);
+      doc.text(`Dicetak: ${format(new Date(), "dd MMMM yyyy, HH:mm 'WIB'", { locale: idLocale })}`, margin, pageHeight - 8);
       doc.text(`Halaman ${pn}`, pageWidth / 2, pageHeight - 8, { align: "center" });
       doc.text(`Total: ${rows.length} siswa`, pageWidth - margin, pageHeight - 8, { align: "right" });
       doc.setTextColor(0, 0, 0);
     };
-
-    // ── Fungsi menggambar 1 baris ─────────────────────────────────────
     const drawRow = (cells: string[], rowIndex: number, isHeader = false) => {
       const cellH = isHeader ? headerH : rowH;
       let x = margin;
       cells.forEach((cell, ci) => {
         const w = colWidths[ci];
         const lines = cell.split("\n");
-
         if (isHeader) {
-          doc.setFillColor(208, 208, 208);
-          doc.rect(x, y, w, cellH, "F");
-          doc.setTextColor(0, 0, 0);
-          doc.setFont("times", "bold");
-          doc.setFontSize(8);
-          const th = lines.length * lineH;
-          const sy = y + (cellH - th) / 2 + lineH * 0.8;
+          doc.setFillColor(208, 208, 208); doc.rect(x, y, w, cellH, "F");
+          doc.setTextColor(0, 0, 0); doc.setFont("times", "bold"); doc.setFontSize(8);
+          const th = lines.length * lineH; const sy = y + (cellH - th) / 2 + lineH * 0.8;
           lines.forEach((ln, li) => doc.text(ln, x + w / 2, sy + li * lineH, { align: "center" }));
         } else {
           const statusColors: Record<string, [number, number, number]> = {
-            "Hadir":      [34,  197, 94],
-            "Izin":       [59,  130, 246],
-            "Sakit":      [245, 158, 11],
-            "Alpa":       [239, 68,  68],
-            "Hari Libur": [168, 85,  247],
-            "Belum Absen":[209, 213, 219],
+            "Hadir": [34, 197, 94], "Izin": [59, 130, 246], "Sakit": [245, 158, 11],
+            "Alpa": [239, 68, 68], "Hari Libur": [168, 85, 247], "Belum Absen": [209, 213, 219],
           };
           const statusTextWhite = new Set(["Hadir", "Izin", "Sakit", "Alpa", "Hari Libur"]);
           const altBg: [number, number, number] = rowIndex % 2 === 0 ? [255, 255, 255] : [248, 248, 248];
-
           if (ci === 7 && statusColors[cell]) {
             const [r2, g2, b2] = statusColors[cell];
-            doc.setFillColor(r2, g2, b2);
-            doc.rect(x, y, w, cellH, "F");
+            doc.setFillColor(r2, g2, b2); doc.rect(x, y, w, cellH, "F");
             doc.setTextColor(statusTextWhite.has(cell) ? 255 : 85, statusTextWhite.has(cell) ? 255 : 85, statusTextWhite.has(cell) ? 255 : 85);
           } else {
-            doc.setFillColor(altBg[0], altBg[1], altBg[2]);
-            doc.rect(x, y, w, cellH, "F");
+            doc.setFillColor(altBg[0], altBg[1], altBg[2]); doc.rect(x, y, w, cellH, "F");
             doc.setTextColor(ci === 0 ? 110 : 0, ci === 0 ? 110 : 0, ci === 0 ? 110 : 0);
           }
-
-          doc.setFont("times", "normal");
-          doc.setFontSize(8.5);
+          doc.setFont("times", "normal"); doc.setFontSize(8.5);
           const align = (ci === 0 || ci === 4 || ci === 6 || ci === 7) ? "center" : "left";
           const textX = align === "center" ? x + w / 2 : x + 1.5;
           const splitLines: string[] = [];
           lines.forEach(ln => splitLines.push(...doc.splitTextToSize(ln, w - 2)));
-          const th = splitLines.length * lineH;
-          const sy = y + (cellH - th) / 2 + lineH * 0.8;
+          const th = splitLines.length * lineH; const sy = y + (cellH - th) / 2 + lineH * 0.8;
           splitLines.forEach((ln, li) => doc.text(ln, textX, sy + li * lineH, { align }));
         }
-
-        doc.setDrawColor(140, 140, 140);
-        doc.setLineWidth(0.2);
-        doc.rect(x, y, w, cellH);
-        doc.setTextColor(0, 0, 0);
-        x += w;
+        doc.setDrawColor(140, 140, 140); doc.setLineWidth(0.2); doc.rect(x, y, w, cellH);
+        doc.setTextColor(0, 0, 0); x += w;
       });
     };
-
-    // ── Gambar header tabel ───────────────────────────────────────────
-    drawRow(colLabels, 0, true);
-    y += headerH;
-
-    // ── Gambar baris data ─────────────────────────────────────────────
+    drawRow(colLabels, 0, true); y += headerH;
     rows.forEach((r, i) => {
-      if (y + rowH > pageHeight - 22) {
-        addPageFooter(pageNum);
-        doc.addPage();
-        pageNum++;
-        y = margin;
-        drawRow(colLabels, 0, true);
-        y += headerH;
-      }
+      if (y + rowH > pageHeight - 22) { addPageFooter(pageNum); doc.addPage(); pageNum++; y = margin; drawRow(colLabels, 0, true); y += headerH; }
       const jamPulangPDF = r.jamPulang !== "-" ? `${r.jamPulang}\nSudah Pulang` : "-";
-      const ketPDF = r.keterangan !== "-" ? r.keterangan : "";
-      drawRow([String(r.no), r.kelas, r.tanggal, r.nama, r.jamDatang, ketPDF, jamPulangPDF, r.status], i);
+      drawRow([String(r.no), r.kelas, r.tanggal, r.nama, r.jamDatang, r.keterangan !== "-" ? r.keterangan : "", jamPulangPDF, r.status], i);
       y += rowH;
     });
-
-    // ── Footer halaman terakhir ───────────────────────────────────────
     addPageFooter(pageNum);
-
-    // ── Tanda Tangan ─────────────────────────────────────────────────
-    const sigH = 60;
-    let sigY = y + 10;
-    if (sigY + sigH > pageHeight - 18) {
-      doc.addPage();
-      sigY = margin + 10;
-    }
-
+    const sigH = 60; let sigY = y + 10;
+    if (sigY + sigH > pageHeight - 18) { doc.addPage(); sigY = margin + 10; }
     const printDate = format(new Date(), "dd MMMM yyyy", { locale: idLocale });
-    const leftCx  = margin + 28;
-    const rightCx = pageWidth - margin - 28;
-
-    doc.setFontSize(10);
-    doc.setFont("times", "normal");
-    doc.setTextColor(0, 0, 0);
-
-    doc.text("Mengetahui,",    leftCx,  sigY,      { align: "center" });
-    doc.text("Kepala Sekolah", leftCx,  sigY + 5,  { align: "center" });
-    doc.text(`Kebakkramat, ${printDate}`, rightCx, sigY,     { align: "center" });
-    doc.text("Guru / Wali Kelas",         rightCx, sigY + 5, { align: "center" });
-
-    const lineY = sigY + 42;
-    doc.setLineWidth(0.4);
-    doc.line(leftCx  - 24, lineY, leftCx  + 24, lineY);
+    const leftCx = margin + 28; const rightCx = pageWidth - margin - 28;
+    doc.setFontSize(10); doc.setFont("times", "normal"); doc.setTextColor(0, 0, 0);
+    doc.text("Mengetahui,", leftCx, sigY, { align: "center" });
+    doc.text("Kepala Sekolah", leftCx, sigY + 5, { align: "center" });
+    doc.text(`Kebakkramat, ${printDate}`, rightCx, sigY, { align: "center" });
+    doc.text("Guru / Wali Kelas", rightCx, sigY + 5, { align: "center" });
+    const lineY = sigY + 42; doc.setLineWidth(0.4);
+    doc.line(leftCx - 24, lineY, leftCx + 24, lineY);
     doc.line(rightCx - 24, lineY, rightCx + 24, lineY);
-
-    doc.setFont("times", "normal");
-    doc.setFontSize(9);
-    doc.text("NIP. .............................", leftCx,  lineY + 5, { align: "center" });
+    doc.setFont("times", "normal"); doc.setFontSize(9);
+    doc.text("NIP. .............................", leftCx, lineY + 5, { align: "center" });
     doc.text("NIP. .............................", rightCx, lineY + 5, { align: "center" });
-
     doc.save(`laporan-harian_${getFilenameSuffix()}.pdf`);
     toast.success("File PDF berhasil diunduh");
   };
 
   const displayDate = startDate || format(new Date(), "yyyy-MM-dd");
-
   const displayDateSetting = getSettingForDate(displayDate);
   const isDisplayDateEnabled = !displayDateSetting || displayDateSetting.enabled === true;
 
@@ -644,26 +475,18 @@ const Reports = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Kelas</SelectItem>
-                  {classes.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
+                  {(classes as any[]).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
-              <Button
-                onClick={handleSearch}
-                className="gap-2 flex-1 lg:flex-none bg-[hsl(185,75%,32%)] hover:bg-[hsl(185,75%,27%)] dark:bg-[hsl(185,65%,38%)] dark:hover:bg-[hsl(185,65%,33%)] text-white"
-              >
-                <Search className="h-4 w-4" />
-                Cari Data
+              <Button onClick={handleSearch} className="gap-2 flex-1 lg:flex-none bg-[hsl(185,75%,32%)] hover:bg-[hsl(185,75%,27%)] text-white">
+                <Search className="h-4 w-4" />Cari Data
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="gap-2 flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white">
-                    <Download className="h-4 w-4" />
-                    Export
-                    <ChevronDown className="h-3 w-3" />
+                  <Button className="gap-2 flex-1 lg:flex-none bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Download className="h-4 w-4" />Export<ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -681,209 +504,130 @@ const Reports = () => {
         <div className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
           <PowerOff className="h-5 w-5 text-slate-400 mt-0.5 shrink-0" />
           <div className="text-sm">
-            <p className="font-semibold text-slate-600 dark:text-slate-300">Absensi Tidak Aktif</p>
+            <p className="font-semibold text-slate-700 dark:text-slate-300">Absensi Nonaktif untuk Hari Ini</p>
             <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-              Pengaturan waktu absensi hari <span className="font-medium">{displayDateSetting?.day_of_week}</span> belum diaktifkan,
-              sehingga data laporan masih kosong untuk tanggal ini.
+              Hari ini ({format(new Date(displayDate + "T00:00:00"), "EEEE", { locale: idLocale })}) tidak terjadwal absensi.
+              Data rekap tidak akan bertambah.
             </p>
           </div>
         </div>
       )}
 
-      {(() => {
-        const displayHoliday = getHolidayForDate(displayDate);
-        if (!displayHoliday) return null;
-        return (
-          <div className="flex items-center gap-3 bg-purple-50 border border-purple-300 rounded-xl px-4 py-3.5 shadow-sm dark:bg-purple-950/20 dark:border-purple-700">
-            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center">
-              <CalendarOff className="h-5 w-5 text-white" />
+      {groupedData.length === 0 ? (
+        <Card className="border-none shadow-sm">
+          <CardContent className="py-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+              <FileBarChart2 className="h-8 w-8 text-muted-foreground/40" />
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-purple-700 dark:text-purple-400">Hari Libur — Status Siswa Ditampilkan Khusus</p>
-              {displayHoliday.description && (
-                <p className="text-xs text-purple-500 mt-0.5 truncate">{displayHoliday.description}</p>
-              )}
-              <p className="text-xs text-purple-400 mt-0.5">Siswa yang tidak memiliki catatan absensi akan ditampilkan statusnya sebagai <span className="font-semibold">Hari Libur</span>.</p>
-            </div>
-          </div>
-        );
-      })()}
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Cari Siswa / Kelas..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 w-full sm:w-64 bg-background"
-        />
-      </div>
-
-      <Card className="border border-border/60 shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          {groupedData.length === 0 ? (
-            <p className="text-muted-foreground text-center py-12">
-              Tidak ada data absensi untuk filter yang dipilih
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              {groupedData.map((group) => {
-                return (
-                  <div key={group.classId}>
-                    <div className="flex items-center gap-3 px-4 py-3 bg-[hsl(185,75%,32%)]/10 dark:bg-[hsl(185,65%,38%)]/15 border-b border-border/60">
-                      <Badge className="bg-[hsl(185,75%,32%)] hover:bg-[hsl(185,75%,27%)] dark:bg-[hsl(185,65%,42%)] text-white border-0">
-                        {group.className}
+            <p className="font-semibold text-muted-foreground">Tidak ada data siswa</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Tambahkan kelas dan siswa terlebih dahulu</p>
+          </CardContent>
+        </Card>
+      ) : (
+        groupedData.map((group) => {
+          const { students } = group;
+          const hadirCount = students.filter(s => s.record?.status === "hadir").length;
+          const izinCount = students.filter(s => s.record?.status === "izin").length;
+          const sakitCount = students.filter(s => s.record?.status === "sakit").length;
+          const alpaVirtual = students.filter(s => !s.record && isCheckInClosed(s.date) && !getHolidayForDate(s.date)).length;
+          const alpaCount = students.filter(s => s.record?.status === "alpa").length + alpaVirtual;
+          return (
+            <Card key={group.classId} className="border border-border/60 shadow-sm overflow-hidden">
+              <div className="bg-[hsl(185,75%,32%)]/10 dark:bg-[hsl(185,75%,32%)]/15 px-4 py-3 border-b border-border/60">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-[hsl(185,75%,28%)] dark:text-[hsl(185,75%,50%)]">{group.className}</span>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[
+                      { label: "Hadir", count: hadirCount, cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400" },
+                      { label: "Izin", count: izinCount, cls: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400" },
+                      { label: "Sakit", count: sakitCount, cls: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" },
+                      { label: "Alpa", count: alpaCount, cls: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400" },
+                    ].map(({ label, count, cls }) => (
+                      <Badge key={label} variant="outline" className={`${cls} border-0 text-[11px] font-bold px-2 py-0.5`}>
+                        {label}: {count}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">{group.students.length} siswa</span>
-                    </div>
-
-                    {/* ── Mobile: card per siswa — hanya di-render saat HP ── */}
-                    {isMobile && (
-                      <div className="divide-y divide-border/60">
-                        {group.students.map((s: any) => {
-                          const { jamDatang, jamPulang, keterangan, isLate, isHoliday: isStudentHoliday } = getTimeInfo(s.record, s.date);
-                          const sudahPulang = !!s.record?.check_out_at;
-                          return (
-                            <div key={s.id} className="px-4 py-3 space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-semibold text-sm flex-1 min-w-0 truncate">{s.name}</p>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0">
-                                      <Badge variant="outline" className={getStatusBadgeClass(s.record, s.date) + " text-[11px]"}>
-                                        {getStatusLabel(s.record, s.date)}
-                                      </Badge>
-                                      <Pencil className="h-3 w-3 text-muted-foreground" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {(["hadir", "izin", "sakit", "alpa"] as AttendanceStatus[]).map((status) => (
-                                      <DropdownMenuItem
-                                        key={status}
-                                        onClick={() => updateStatusMutation.mutate({
-                                          recordId: s.record?.id,
-                                          studentId: s.id,
-                                          classId: s.record?.class_id || allStudents.find((st: any) => st.id === s.id)?.class_id,
-                                          date: s.date,
-                                          newStatus: status,
-                                        })}
-                                      >
-                                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                                {jamDatang !== "-" && (
-                                  <span>Datang: <span className="font-mono font-semibold text-foreground">{jamDatang}</span></span>
-                                )}
-                                {jamPulang !== "-" ? (
-                                  <span className="flex items-center gap-1.5 flex-wrap">
-                                    <span>Pulang: <span className="font-mono font-semibold text-emerald-600">{jamPulang}</span></span>
-                                    {sudahPulang && (
-                                      <Badge className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 font-semibold">
-                                        Sudah Pulang
-                                      </Badge>
-                                    )}
-                                  </span>
-                                ) : null}
-                                {keterangan !== "-" && (
-                                  <span className={isStudentHoliday ? "text-purple-600 font-semibold" : isLate ? "text-destructive font-semibold" : "text-emerald-600 font-semibold"}>{keterangan}</span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* ── Desktop: table — hanya di-render saat layar lebar ── */}
-                    {!isMobile && <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">NO</TableHead>
-                          <TableHead>TANGGAL</TableHead>
-                          <TableHead>NAMA SISWA</TableHead>
-                          <TableHead>JAM DATANG</TableHead>
-                          <TableHead>KETERANGAN WAKTU DATANG</TableHead>
-                          <TableHead>JAM PULANG</TableHead>
-                          <TableHead className="text-right">STATUS</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {group.students.map((s: any, i: number) => {
-                          const { jamDatang, jamPulang, keterangan, isLate, isHoliday: isStudentHoliday } = getTimeInfo(s.record, s.date);
-                          const sudahPulang = !!s.record?.check_out_at;
-                          return (
-                            <TableRow key={s.id}>
-                              <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                              <TableCell>{format(new Date(displayDate), "dd MMM yyyy", { locale: idLocale })}</TableCell>
-                              <TableCell className="font-medium">{s.name}</TableCell>
-                              <TableCell>{jamDatang}</TableCell>
-                              <TableCell>
-                                {isStudentHoliday ? (
-                                  <span className="text-purple-600 font-semibold">{keterangan}</span>
-                                ) : isLate ? (
-                                  <span className="text-destructive font-semibold">{keterangan}</span>
-                                ) : (
-                                  keterangan
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {jamPulang !== "-" ? (
-                                  <span className="flex items-center gap-1.5 flex-wrap">
-                                    <span>{jamPulang}</span>
-                                    {sudahPulang && (
-                                      <Badge className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 font-semibold">
-                                        Sudah Pulang
-                                      </Badge>
-                                    )}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
-                                      <Badge variant="outline" className={getStatusBadgeClass(s.record, s.date)}>
-                                        {getStatusLabel(s.record, s.date)}
-                                      </Badge>
-                                      <Pencil className="h-3 w-3 text-muted-foreground" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {(["hadir", "izin", "sakit", "alpa"] as AttendanceStatus[]).map((status) => (
-                                      <DropdownMenuItem
-                                        key={status}
-                                        onClick={() => updateStatusMutation.mutate({
-                                          recordId: s.record?.id,
-                                          studentId: s.id,
-                                          classId: s.record?.class_id || allStudents.find((st: any) => st.id === s.id)?.class_id,
-                                          date: s.date,
-                                          newStatus: status,
-                                        })}
-                                      >
-                                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>}
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="hidden sm:table-cell w-10">No</TableHead>
+                      <TableHead>Nama Siswa</TableHead>
+                      {!isMobile && <TableHead className="hidden lg:table-cell">Jam Datang</TableHead>}
+                      {!isMobile && <TableHead className="hidden lg:table-cell">Keterangan</TableHead>}
+                      {!isMobile && <TableHead className="hidden lg:table-cell">Jam Pulang</TableHead>}
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-right">Ubah</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {students.map((s, i) => {
+                      const { jamDatang, jamPulang, keterangan, isLate, isHoliday } = getTimeInfo(s.record, s.date);
+                      const { label, isVirtualAlpa } = getEffectiveStatus(s.record, s.date);
+                      return (
+                        <TableRow key={s.id} className={isHoliday ? "opacity-60" : ""}>
+                          <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">{i + 1}</TableCell>
+                          <TableCell>
+                            <p className="font-medium text-sm">{s.name}</p>
+                            {isMobile && s.record?.status === "hadir" && (
+                              <p className={`text-[11px] mt-0.5 ${isLate ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}>
+                                {jamDatang !== "-" ? `Masuk ${jamDatang}` : ""}
+                                {keterangan !== "-" && keterangan !== "Tepat Waktu" ? ` — ${keterangan}` : ""}
+                              </p>
+                            )}
+                          </TableCell>
+                          {!isMobile && <TableCell className="hidden lg:table-cell text-sm font-mono text-center">{jamDatang}</TableCell>}
+                          {!isMobile && (
+                            <TableCell className="hidden lg:table-cell text-sm">
+                              {keterangan !== "-" && (
+                                <span className={isLate ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}>
+                                  {keterangan}
+                                </span>
+                              )}
+                            </TableCell>
+                          )}
+                          {!isMobile && <TableCell className="hidden lg:table-cell text-sm font-mono text-center">{jamPulang !== "-" ? <span className="text-emerald-600 dark:text-emerald-400 font-medium">{jamPulang}</span> : "-"}</TableCell>}
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className={`text-[11px] font-bold px-2 py-0.5 border ${getStatusBadgeClass(s.record, s.date)}`}>
+                              {isVirtualAlpa && <CalendarOff className="h-2.5 w-2.5 mr-1 inline" />}
+                              {label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {!isHoliday && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" disabled={updateStatusMutation.isPending}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {(["hadir", "izin", "sakit", "alpa"] as AttendanceStatus[]).map(st => (
+                                    <DropdownMenuItem
+                                      key={st}
+                                      onClick={() => updateStatusMutation.mutate({ recordId: s.record?.id, studentId: s.id, classId: group.classId, date: s.date, newStatus: st })}
+                                    >
+                                      {st.charAt(0).toUpperCase() + st.slice(1)}
+                                      {s.record?.status === st && " ✓"}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          );
+        })
+      )}
     </div>
   );
 };

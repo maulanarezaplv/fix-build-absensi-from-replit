@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -10,7 +11,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-type WebConfig = {
+export type WebConfig = {
   id: string;
   app_title: string;
   app_subtitle: string;
@@ -39,46 +40,55 @@ type WebConfig = {
   updated_at: string | null;
 };
 
+const DEFAULT_WEB_CONFIG: WebConfig = {
+  id: "default",
+  app_title: "E-ABSENSI",
+  app_subtitle: "Sistem Absensi Sekolah",
+  logo_url: null,
+  bg_url_1: null,
+  bg_url_2: null,
+  bg_url_3: null,
+  bg_url_4: null,
+  bg_images: null,
+  school_start_date: null,
+  wa_provider: "fonnte",
+  wa_token: null,
+  wa_target_number: null,
+  wa_auto_send_enabled: false,
+  wa_auto_send_time: "14:00",
+  wa_auto_send_scope: "all",
+  wa_auto_sent_date: null,
+  google_refresh_token: null,
+  google_connected_email: null,
+  google_drive_folder_id: null,
+  gdrive_auto_backup_enabled: false,
+  gdrive_auto_backup_time: "23:00",
+  gdrive_auto_backup_schedule: "monthly",
+  gdrive_auto_backed_up_date: null,
+  school_city: null,
+  updated_at: null,
+};
+
 let webConfigPromise: Promise<WebConfig> | null = null;
 
-export async function getWebConfig() {
+export async function getWebConfig(): Promise<WebConfig> {
   if (!webConfigPromise) {
-    webConfigPromise = fetch("/api/web-config", { credentials: "include" })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
+    webConfigPromise = supabase
+      .from("web_config")
+      .select("*")
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (!data) return DEFAULT_WEB_CONFIG;
+        return data as WebConfig;
       })
-      .catch(() => ({
-        id: "default",
-        app_title: "E-ABSENSI",
-        app_subtitle: "Sistem Absensi Sekolah",
-        logo_url: null,
-        bg_url_1: null,
-        bg_url_2: null,
-        bg_url_3: null,
-        bg_url_4: null,
-        bg_images: null,
-        school_start_date: null,
-        wa_provider: "fonnte",
-        wa_token: null,
-        wa_target_number: null,
-        wa_auto_send_enabled: false,
-        wa_auto_send_time: "14:00",
-        wa_auto_send_scope: "all",
-        wa_auto_sent_date: null,
-        google_refresh_token: null,
-        google_connected_email: null,
-        google_drive_folder_id: null,
-        gdrive_auto_backup_enabled: false,
-        gdrive_auto_backup_time: "23:00",
-        gdrive_auto_backup_schedule: "monthly",
-        gdrive_auto_backed_up_date: null,
-        school_city: null,
-        updated_at: null,
-      }));
+      .catch(() => DEFAULT_WEB_CONFIG);
   }
-
   return webConfigPromise;
+}
+
+export function invalidateWebConfig() {
+  webConfigPromise = null;
 }
 
 export async function apiRequest(method: string, url: string, body?: unknown) {

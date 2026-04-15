@@ -1,97 +1,25 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, getWebConfig } from "@/lib/queryClient";
+import { getWebConfig, invalidateWebConfig } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Type, Globe, Image, Save, Link2, Wand2, X, Plus, Settings2, HardDriveUpload, CheckCircle2, Unlink, FolderOpen, AlertCircle, Clock, CalendarDays, RefreshCw } from "lucide-react";
+import {
+  Type, Globe, Image, Save, Link2, Wand2, X, Plus, Settings2,
+  CalendarDays, Clock,
+} from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-
-const convertGDriveLink = (url: string): string => {
-  const patterns = [
-    /\/file\/d\/([a-zA-Z0-9_-]+)/,
-    /id=([a-zA-Z0-9_-]+)/,
-    /\/d\/([a-zA-Z0-9_-]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) {
-      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
-    }
-  }
-  return url;
-};
+import { supabase } from "@/integrations/supabase/client";
+import { convertGDriveLink } from "@/lib/gdrive";
 
 const WebConfig = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [gdriveInput, setGdriveInput] = useState("");
   const [gdriveResult, setGdriveResult] = useState("");
-  const [folderIdInput, setFolderIdInput] = useState("");
-
-  const { data: googleStatus, isLoading: googleLoading } = useQuery<{
-    configured: boolean; connected: boolean; email: string | null; folderId: string | null;
-  }>({
-    queryKey: ["google-status"],
-    queryFn: () => fetch("/api/backup/google-status", { credentials: "include" }).then(r => r.json()),
-    retry: false,
-  });
-
-  const { data: webConfig } = useQuery<any>({
-    queryKey: ["web-config"],
-    queryFn: getWebConfig,
-    staleTime: 30 * 60_000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-
-  useEffect(() => {
-    if (googleStatus?.folderId) setFolderIdInput(googleStatus.folderId);
-  }, [googleStatus?.folderId]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const g = params.get("google");
-    if (g === "success") {
-      toast({ title: "✅ Google Drive berhasil terhubung!" });
-      qc.invalidateQueries({ queryKey: ["google-status"] });
-      window.history.replaceState({}, "", window.location.pathname);
-    } else if (g === "error") {
-      toast({ title: "Gagal menghubungkan Google Drive", variant: "destructive" });
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
-  const disconnectMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", "/api/auth/google/disconnect"),
-    onSuccess: () => {
-      toast({ title: "Google Drive terputus" });
-      qc.invalidateQueries({ queryKey: ["google-status"] });
-    },
-    onError: (e: Error) => toast({ title: "Gagal", description: e.message, variant: "destructive" }),
-  });
-
-  const saveFolderMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/config/google-folder", { folderId: folderIdInput.trim() || null }),
-    onSuccess: () => {
-      toast({ title: "✅ Folder ID disimpan" });
-      qc.invalidateQueries({ queryKey: ["google-status"] });
-    },
-    onError: (e: Error) => toast({ title: "Gagal", description: e.message, variant: "destructive" }),
-  });
-
-  const saveAutoBackupMutation = useMutation({
-    mutationFn: (data: { enabled: boolean; time: string; schedule: string }) =>
-      apiRequest("PATCH", "/api/config/gdrive-auto-backup", data),
-    onSuccess: () => {
-      toast({ title: "✅ Pengaturan backup otomatis disimpan" });
-      qc.invalidateQueries({ queryKey: ["web-config"] });
-    },
-    onError: (e: Error) => toast({ title: "Gagal", description: e.message, variant: "destructive" }),
-  });
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["web-config"],
@@ -141,9 +69,9 @@ const WebConfig = () => {
   };
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const validBgs = currentBgList.filter(u => u.trim() !== "");
-      return apiRequest("PATCH", "/api/web-config", {
+      const updates = {
         app_title: currentData.app_title,
         app_subtitle: currentData.app_subtitle,
         school_city: currentData.school_city || null,
@@ -156,7 +84,15 @@ const WebConfig = () => {
         wa_provider: currentData.wa_provider || "fonnte",
         wa_token: currentData.wa_token || null,
         wa_target_number: currentData.wa_target_number || null,
-      });
+      };
+      const { data: existing } = await supabase.from("web_config").select("id").limit(1).single();
+      if (existing) {
+        const { error } = await supabase.from("web_config").update(updates).eq("id", existing.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase.from("web_config").insert(updates);
+        if (error) throw new Error(error.message);
+      }
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["web-config"] });
@@ -169,10 +105,6 @@ const WebConfig = () => {
         app_subtitle: currentData.app_subtitle,
         logo_url: currentData.logo_url || null,
         bg_images: validBgs.length > 0 ? JSON.stringify(validBgs) : null,
-        bg_url_1: validBgs[0] || null,
-        bg_url_2: validBgs[1] || null,
-        bg_url_3: validBgs[2] || null,
-        bg_url_4: validBgs[3] || null,
         wa_provider: currentData.wa_provider || "fonnte",
         wa_token: currentData.wa_token || null,
         wa_target_number: currentData.wa_target_number || null,
@@ -192,9 +124,31 @@ const WebConfig = () => {
       toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" });
     },
     onSettled: () => {
+      invalidateWebConfig();
       qc.invalidateQueries({ queryKey: ["web-config"] });
       qc.invalidateQueries({ queryKey: ["public-web-config"] });
     },
+  });
+
+  const saveAutoBackupMutation = useMutation({
+    mutationFn: async (data: { enabled: boolean; time: string; schedule: string }) => {
+      const updates = {
+        gdrive_auto_backup_enabled: data.enabled,
+        gdrive_auto_backup_time: data.time,
+        gdrive_auto_backup_schedule: data.schedule,
+      };
+      const { data: existing } = await supabase.from("web_config").select("id").limit(1).single();
+      if (existing) {
+        const { error } = await supabase.from("web_config").update(updates).eq("id", existing.id);
+        if (error) throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "✅ Pengaturan backup otomatis disimpan" });
+      invalidateWebConfig();
+      qc.invalidateQueries({ queryKey: ["web-config"] });
+    },
+    onError: (e: Error) => toast({ title: "Gagal", description: e.message, variant: "destructive" }),
   });
 
   const updateField = (field: string, value: string) => {
@@ -347,9 +301,7 @@ const WebConfig = () => {
           <div className="space-y-1.5">
             <Label className="font-semibold">Provider API</Label>
             <Select value={currentData.wa_provider} onValueChange={v => updateField("wa_provider", v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="fonnte">Fonnte (api.fonnte.com)</SelectItem>
                 <SelectItem value="woonwa">Woonwa (api.woonwa.com)</SelectItem>
@@ -364,9 +316,7 @@ const WebConfig = () => {
               placeholder="Masukkan token dari dashboard Fonnte/Woonwa..."
               type="password"
             />
-            <p className="text-xs text-muted-foreground">
-              Token didapatkan dari dashboard provider WhatsApp API yang digunakan.
-            </p>
+            <p className="text-xs text-muted-foreground">Token didapatkan dari dashboard provider WhatsApp API yang digunakan.</p>
           </div>
           <div className="space-y-1.5">
             <Label className="font-semibold">Nomor / ID Target (Grup WA)</Label>
@@ -375,194 +325,83 @@ const WebConfig = () => {
               onChange={e => updateField("wa_target_number", e.target.value)}
               placeholder="Contoh: 628123456789-1234567890@g.us atau nomor grup"
             />
-            <p className="text-xs text-muted-foreground">
-              Untuk grup WA, gunakan format ID grup. Untuk nomor individu, gunakan format internasional (62xxx).
-            </p>
+            <p className="text-xs text-muted-foreground">Untuk grup WA, gunakan format ID grup. Untuk nomor individu, gunakan format internasional (62xxx).</p>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Google Drive Backup ── */}
-      <Card className="border-blue-200 dark:border-blue-800/50">
+      <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <HardDriveUpload className="h-5 w-5 text-blue-600" />
-            Backup Google Drive
+            <CalendarDays className="h-5 w-5 text-blue-600" />
+            Pengaturan Backup Otomatis
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!googleLoading && !googleStatus?.configured && (
-            <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/50 px-4 py-3">
-              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                <strong>Belum dikonfigurasi.</strong> Tambahkan <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">GOOGLE_CLIENT_ID</code> dan <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">GOOGLE_CLIENT_SECRET</code> di file <code>.env</code> server untuk mengaktifkan fitur ini.
-              </p>
-            </div>
-          )}
-
-          {!googleLoading && googleStatus?.configured && !googleStatus.connected && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Hubungkan akun Google untuk mengaktifkan backup otomatis rekap absensi ke Google Drive.
-              </p>
-              <Button
-                data-testid="button-connect-google"
-                onClick={() => { window.location.href = "/api/auth/google"; }}
-                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <HardDriveUpload className="h-4 w-4" />
-                Hubungkan Google Drive
-              </Button>
-            </div>
-          )}
-
-          {!googleLoading && googleStatus?.connected && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 px-4 py-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Terhubung</p>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 truncate">{googleStatus.email}</p>
+          <p className="text-sm text-muted-foreground">Konfigurasi jadwal backup otomatis data absensi.</p>
+          <div className="flex items-center justify-between">
+            <Label className="font-semibold">Backup Otomatis</Label>
+            <button
+              type="button"
+              onClick={() => setAutoBackupEnabled(prev => !(prev ?? config?.gdrive_auto_backup_enabled ?? false))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                (autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false)
+                  ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                (autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false)
+                  ? "translate-x-6" : "translate-x-1"
+              }`} />
+            </button>
+          </div>
+          {(autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false) && (
+            <div className="space-y-3 pl-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    Jadwal Backup
+                  </Label>
+                  <Select
+                    value={autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly"}
+                    onValueChange={v => setAutoBackupSchedule(v)}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Akhir Bulan</SelectItem>
+                      <SelectItem value="daily">Setiap Hari</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  data-testid="button-disconnect-google"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => disconnectMutation.mutate()}
-                  disabled={disconnectMutation.isPending}
-                  className="shrink-0 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
-                >
-                  <Unlink className="h-3.5 w-3.5 mr-1.5" />
-                  Putuskan
-                </Button>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="font-semibold flex items-center gap-1.5">
-                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                  ID Folder Google Drive (opsional)
-                </Label>
-                <div className="flex gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Jam Backup (WIB)
+                  </Label>
                   <Input
-                    data-testid="input-folder-id"
-                    value={folderIdInput}
-                    onChange={e => setFolderIdInput(e.target.value)}
-                    placeholder="Paste ID folder Drive di sini (kosongkan untuk root)"
-                    className="flex-1"
+                    type="time"
+                    value={autoBackupTime ?? config?.gdrive_auto_backup_time ?? "23:00"}
+                    onChange={e => setAutoBackupTime(e.target.value)}
+                    className="h-9"
                   />
-                  <Button
-                    data-testid="button-save-folder"
-                    onClick={() => saveFolderMutation.mutate()}
-                    disabled={saveFolderMutation.isPending}
-                    variant="outline"
-                    className="shrink-0"
-                  >
-                    <Save className="h-4 w-4 mr-1.5" />
-                    Simpan
-                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Ambil ID dari link folder Drive: drive.google.com/drive/folders/<strong>ID_FOLDER_INI</strong>. Pastikan folder sudah di-share ke email service account atau akun yang terhubung.
-                </p>
-              </div>
-
-              {/* ── Auto Backup ── */}
-              <div className="border-t pt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4 text-blue-600" />
-                    <Label className="font-semibold text-base">Backup Otomatis</Label>
-                  </div>
-                  <button
-                    data-testid="toggle-auto-backup"
-                    type="button"
-                    onClick={() => {
-                      const next = !(autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false);
-                      setAutoBackupEnabled(next);
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                      (autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false)
-                        ? "bg-blue-600"
-                        : "bg-gray-300 dark:bg-gray-600"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                        (autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false)
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {(autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false) && (
-                  <div className="space-y-3 pl-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm flex items-center gap-1.5">
-                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                          Jadwal Backup
-                        </Label>
-                        <Select
-                          value={autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly"}
-                          onValueChange={v => setAutoBackupSchedule(v)}
-                        >
-                          <SelectTrigger data-testid="select-backup-schedule" className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="monthly">Akhir Bulan</SelectItem>
-                            <SelectItem value="daily">Setiap Hari</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-sm flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                          Jam Backup (WIB)
-                        </Label>
-                        <Input
-                          data-testid="input-backup-time"
-                          type="time"
-                          value={autoBackupTime ?? config?.gdrive_auto_backup_time ?? "23:00"}
-                          onChange={e => setAutoBackupTime(e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {(autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly") === "monthly"
-                        ? "Sistem akan otomatis membuat folder di Google Drive setiap akhir bulan, lalu mengisi dengan PDF rekap absensi per kelas."
-                        : "Sistem akan otomatis membuat folder di Google Drive setiap hari, lalu mengisi dengan PDF rekap absensi per kelas."}
-                    </p>
-                    {config?.gdrive_auto_backed_up_date && (
-                      <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                        ✅ Terakhir backup: {config.gdrive_auto_backed_up_date}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <Button
-                  data-testid="button-save-auto-backup"
-                  onClick={() => {
-                    saveAutoBackupMutation.mutate({
-                      enabled: autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false,
-                      time: autoBackupTime ?? config?.gdrive_auto_backup_time ?? "23:00",
-                      schedule: autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly",
-                    });
-                  }}
-                  disabled={saveAutoBackupMutation.isPending}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  {saveAutoBackupMutation.isPending ? "Menyimpan..." : "Simpan Pengaturan Backup"}
-                </Button>
               </div>
             </div>
           )}
+          <Button
+            onClick={() => saveAutoBackupMutation.mutate({
+              enabled: autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false,
+              time: autoBackupTime ?? config?.gdrive_auto_backup_time ?? "23:00",
+              schedule: autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly",
+            })}
+            disabled={saveAutoBackupMutation.isPending}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {saveAutoBackupMutation.isPending ? "Menyimpan..." : "Simpan Pengaturan Backup"}
+          </Button>
         </CardContent>
       </Card>
 
@@ -592,7 +431,6 @@ const WebConfig = () => {
                   size="icon"
                   onClick={() => removeBg(i)}
                   className="shrink-0 text-muted-foreground hover:text-destructive"
-                  title="Hapus background ini"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -609,11 +447,7 @@ const WebConfig = () => {
               )}
             </div>
           ))}
-          <Button
-            variant="outline"
-            onClick={addBg}
-            className="w-full gap-2 border-dashed"
-          >
+          <Button variant="outline" onClick={addBg} className="w-full gap-2 border-dashed">
             <Plus className="h-4 w-4" />
             Tambah Background
           </Button>

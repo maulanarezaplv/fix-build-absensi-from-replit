@@ -1,8 +1,7 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { convertGDriveLink } from "@/lib/gdrive";
 import { getWebConfig } from "@/lib/queryClient";
+import { supabase } from "@/integrations/supabase/client";
 
 const Students = () => {
   useRealtimeSubscription("students", [["students"]]);
@@ -54,12 +54,18 @@ const Students = () => {
 
   const { data: classes = [] } = useQuery({
     queryKey: ["classes"],
-    queryFn: () => fetch("/api/classes", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("*").order("name");
+      return data ?? [];
+    },
   });
 
   const { data: students = [], isLoading, isFetching: isStudentFetching, refetch: refetchStudents } = useQuery({
     queryKey: ["students"],
-    queryFn: () => fetch("/api/students", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("students").select("*, classes(name)").order("name");
+      return data ?? [];
+    },
   });
 
   const { data: webConfig } = useQuery({
@@ -78,18 +84,17 @@ const Students = () => {
   const detectedNames = bulkText.split("\n").map(n => n.trim()).filter(Boolean);
 
   const addBulkMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!classId) throw new Error("Pilih kelas terlebih dahulu");
       if (detectedNames.length === 0) throw new Error("Masukkan minimal 1 nama");
-      const studentList = detectedNames.map((name) => ({
-        name,
-        class_id: classId,
-      }));
-      return apiRequest("POST", "/api/students", { students: studentList });
+      const studentList = detectedNames.map((name) => ({ name, class_id: classId }));
+      const { error } = await supabase.from("students").insert(studentList);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
       qc.invalidateQueries({ queryKey: ["student-counts"] });
+      qc.invalidateQueries({ queryKey: ["student-count"] });
       toast({ title: `${detectedNames.length} siswa ditambahkan` });
       setBulkText("");
     },
@@ -97,9 +102,16 @@ const Students = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!editId) return;
-      return apiRequest("PATCH", `/api/students/${editId}`, { name: editName, nis: editNis.trim() || null, gender: editGender || null, photo_url: editPhotoUrl, class_id: editClassId });
+      const { error } = await supabase.from("students").update({
+        name: editName,
+        nis: editNis.trim() || null,
+        gender: editGender || null,
+        photo_url: editPhotoUrl || null,
+        class_id: editClassId,
+      }).eq("id", editId);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
@@ -107,29 +119,41 @@ const Students = () => {
       toast({ title: "Siswa diperbarui" });
       setEditOpen(false);
     },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/students/${id}`),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("students").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
       qc.invalidateQueries({ queryKey: ["student-counts"] });
+      qc.invalidateQueries({ queryKey: ["student-count"] });
       toast({ title: "Siswa dihapus" });
     },
   });
 
   const deleteAllMutation = useMutation({
-    mutationFn: (cId: string) => apiRequest("DELETE", `/api/students/by-class/${cId}`),
+    mutationFn: async (cId: string) => {
+      const { error } = await supabase.from("students").delete().eq("class_id", cId);
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
       qc.invalidateQueries({ queryKey: ["student-counts"] });
+      qc.invalidateQueries({ queryKey: ["student-count"] });
       toast({ title: "Semua siswa di kelas ini dihapus" });
     },
   });
 
   const batchPhotoMutation = useMutation({
-    mutationFn: (updates: Array<{ id: string; photo_url: string }>) =>
-      apiRequest("PATCH", "/api/students/batch-photos", { updates }),
+    mutationFn: async (updates: Array<{ id: string; photo_url: string }>) => {
+      await Promise.all(
+        updates.map(u => supabase.from("students").update({ photo_url: u.photo_url || null }).eq("id", u.id))
+      );
+    },
     onSuccess: (_, updates) => {
       qc.invalidateQueries({ queryKey: ["students"] });
       toast({ title: `${updates.length} foto siswa diperbarui` });
@@ -149,20 +173,17 @@ const Students = () => {
   };
 
   const batchNisMutation = useMutation({
-    mutationFn: (updates: Array<{ id: string; nis: string | null }>) =>
-      apiRequest("PATCH", "/api/students/batch-nis", { updates }),
+    mutationFn: async (updates: Array<{ id: string; nis: string | null }>) => {
+      const results = await Promise.allSettled(
+        updates.map(u => supabase.from("students").update({ nis: u.nis || null }).eq("id", u.id))
+      );
+      const failed = results.filter(r => r.status === "rejected");
+      return { saved: results.length - failed.length, duplicates: [] as string[] };
+    },
     onSuccess: (data: { saved: number; duplicates: string[] }) => {
       qc.invalidateQueries({ queryKey: ["students"] });
-      if (data.duplicates && data.duplicates.length > 0) {
-        toast({
-          title: `${data.saved} NIS disimpan`,
-          description: `NIS berikut sudah digunakan siswa lain: ${data.duplicates.join(", ")}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: `${data.saved} NIS berhasil disimpan` });
-        setBatchNisOpen(false);
-      }
+      toast({ title: `${data.saved} NIS berhasil disimpan` });
+      setBatchNisOpen(false);
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -184,8 +205,12 @@ const Students = () => {
   };
 
   const batchGenderMutation = useMutation({
-    mutationFn: (updates: Array<{ id: string; gender: string | null }>) =>
-      apiRequest("PATCH", "/api/students/batch-gender", { updates }),
+    mutationFn: async (updates: Array<{ id: string; gender: string | null }>) => {
+      await Promise.all(
+        updates.map(u => supabase.from("students").update({ gender: u.gender || null }).eq("id", u.id))
+      );
+      return { count: updates.length };
+    },
     onSuccess: (_data: { count: number }) => {
       qc.invalidateQueries({ queryKey: ["students"] });
       const filled = batchGenderValues.filter(v => v === "L" || v === "P").length;
@@ -246,10 +271,9 @@ const Students = () => {
   }, [students, filterClassId, debouncedSearch, sortClassName]);
 
   const fetchImageAsDataURL = (url: string): Promise<string> => {
-    // Gunakan proxy server agar tidak terkena CORS saat fetch Google Drive / URL eksternal
-    const proxiedUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
     return new Promise((resolve) => {
       const img = new Image();
+      img.crossOrigin = "anonymous";
       img.onload = () => {
         try {
           const canvas = document.createElement("canvas");
@@ -263,36 +287,31 @@ const Students = () => {
         }
       };
       img.onerror = () => resolve("");
-      img.src = proxiedUrl;
+      img.src = url;
     });
   };
 
   const drawCardToPdf = async (doc: jsPDF, student: any, className: string, x: number, y: number) => {
-    const appSubtitle = webConfig?.app_subtitle || "SMP Negeri 1 Kebakkramat";
+    const appSubtitle = (webConfig as any)?.app_subtitle || "SMP Negeri 1 Kebakkramat";
     const cardW = 90;
     const cardH = 57;
     const headerH = 20;
 
-    // ── Border kartu (rounded) ──
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.3);
     doc.roundedRect(x, y, cardW, cardH, 2.5, 2.5);
 
-    // ── Header navy ──
     doc.setFillColor(20, 52, 120);
     doc.roundedRect(x, y, cardW, headerH, 2.5, 2.5, "F");
-    doc.rect(x, y + headerH - 4, cardW, 4, "F"); // tutup sudut bawah header
+    doc.rect(x, y + headerH - 4, cardW, 4, "F");
 
-    // ── Garis emas di bawah header ──
     doc.setFillColor(245, 158, 11);
     doc.rect(x, y + headerH, cardW, 1.2, "F");
 
-    // ── Teks header ──
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10.5);
     doc.text("KARTU PELAJAR", x + cardW / 2, y + 8, { align: "center" });
-    // Nama sekolah — ukuran font sama dengan judul (10.5pt), auto-shrink jika terlalu panjang
     doc.setFont("helvetica", "normal");
     let subtitleFontSize = 10.5;
     for (let fs = 10.5; fs >= 6; fs -= 0.5) {
@@ -304,7 +323,6 @@ const Students = () => {
     doc.setTextColor(255, 255, 255);
     doc.text(appSubtitle, x + cardW / 2, y + 15.5, { align: "center" });
 
-    // ── QR Code ──
     const qrData = student.nis || student.id || "";
     let qrDataUrl = "";
     try {
@@ -320,19 +338,16 @@ const Students = () => {
     const qrY = y + headerH + 3;
 
     if (qrDataUrl) {
-      // Kotak putih di belakang QR agar jelas saat cetak
       doc.setFillColor(255, 255, 255);
       doc.rect(qrX - 0.5, qrY - 0.5, qrSize + 1, qrSize + 1, "F");
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
     }
 
-    // Label scan (di bawah QR)
     doc.setTextColor(140, 140, 140);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(4);
     doc.text("Scan untuk Absensi", qrX + qrSize / 2, qrY + qrSize + 2.5, { align: "center" });
 
-    // ── Foto siswa ──
     const photoW = 21;
     const photoH = 26;
     const photoX = x + cardW - photoW - 4;
@@ -345,7 +360,6 @@ const Students = () => {
       const photoDataUrl = await fetchImageAsDataURL(convertedUrl);
       if (photoDataUrl) {
         photoLoaded = true;
-        // Border foto
         doc.setDrawColor(180, 180, 180);
         doc.setLineWidth(0.3);
         doc.rect(photoX, photoY, photoW, photoH);
@@ -353,31 +367,26 @@ const Students = () => {
       }
     }
     if (!photoLoaded) {
-      // Placeholder abu-abu bergradasi
       doc.setFillColor(238, 238, 238);
       doc.rect(photoX, photoY, photoW, photoH, "F");
       doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.3);
       doc.rect(photoX, photoY, photoW, photoH);
-      // Ikon kamera kecil (orang)
       doc.setFillColor(195, 195, 195);
       const cx = photoX + photoW / 2;
       const cy = photoY + photoH / 2 - 2;
-      doc.circle(cx, cy - 3, 3, "F");           // kepala
-      doc.ellipse(cx, cy + 4, 5, 3.5, "F");     // badan
-      // Teks FOTO
+      doc.circle(cx, cy - 3, 3, "F");
+      doc.ellipse(cx, cy + 4, 5, 3.5, "F");
       doc.setTextColor(165, 165, 165);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(5.5);
       doc.text("FOTO", cx, photoY + photoH - 2.5, { align: "center" });
     }
 
-    // ── Info siswa ──
     const infoX = qrX + qrSize + 5;
     const infoMaxW = photoX - infoX - 2;
     const infoStartY = y + headerH + 5;
 
-    // Nama siswa (auto shrink)
     doc.setTextColor(15, 15, 15);
     doc.setFont("helvetica", "bold");
     let nameLines: string[] = [];
@@ -394,13 +403,11 @@ const Students = () => {
       doc.text(line, infoX, infoStartY + i * lineH);
     });
 
-    // Garis tipis di bawah nama
     const afterNameY = infoStartY + nameLines.length * lineH + 1.5;
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.2);
     doc.line(infoX, afterNameY, photoX - 2, afterNameY);
 
-    // NIS
     let detailY = afterNameY + 4;
     if (student.nis) {
       doc.setFontSize(6);
@@ -413,7 +420,6 @@ const Students = () => {
       detailY += 4.5;
     }
 
-    // Kelas
     doc.setFontSize(6.5);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
@@ -474,7 +480,7 @@ const Students = () => {
               <Select value={classId} onValueChange={setClassId}>
                 <SelectTrigger><SelectValue placeholder="-- Pilih Kelas --" /></SelectTrigger>
                 <SelectContent>
-                  {classes.map((c: any) => (
+                  {(classes as any[]).map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -512,7 +518,7 @@ const Students = () => {
           <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua Kelas" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Kelas</SelectItem>
-            {classes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            {(classes as any[]).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button
@@ -536,14 +542,11 @@ const Students = () => {
           <Card key={cId} className="border-none shadow-sm">
             <CardContent className="p-0">
               <div className="px-4 py-3 border-b border-border bg-accent/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                {/* Nama kelas */}
                 <div className="flex items-center gap-2 min-w-0">
                   <Users className="h-4 w-4 text-accent flex-shrink-0" />
                   <span className="font-bold truncate">{className}</span>
                   <span className="text-muted-foreground whitespace-nowrap">({items.length} siswa)</span>
                 </div>
-
-                {/* Tombol aksi — grid 2×2 di mobile, satu baris di desktop */}
                 <div className="grid grid-cols-3 sm:flex sm:flex-row items-center gap-1.5 sm:gap-3">
                   <button
                     className="text-xs text-blue-600 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors sm:border-0 sm:bg-transparent sm:p-0 sm:rounded-none sm:hover:bg-transparent sm:hover:underline"
@@ -680,19 +683,13 @@ const Students = () => {
             </div>
             <div className="space-y-2">
               <Label>NIS <span className="text-muted-foreground font-normal">(opsional)</span></Label>
-              <Input
-                value={editNis}
-                onChange={(e) => setEditNis(e.target.value)}
-                placeholder="Contoh: 1234567890"
-              />
+              <Input value={editNis} onChange={(e) => setEditNis(e.target.value)} placeholder="Contoh: 1234567890" />
               <p className="text-xs text-muted-foreground">Jika diisi, NIS akan muncul di kartu pelajar dan dipakai sebagai data QR Code.</p>
             </div>
             <div className="space-y-2">
               <Label>Jenis Kelamin <span className="text-muted-foreground font-normal">(opsional)</span></Label>
               <Select value={editGender} onValueChange={setEditGender}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih L/P" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Pilih L/P" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="L">L — Laki-laki</SelectItem>
                   <SelectItem value="P">P — Perempuan</SelectItem>
@@ -702,11 +699,9 @@ const Students = () => {
             <div className="space-y-2">
               <Label>Kelas</Label>
               <Select value={editClassId} onValueChange={setEditClassId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Kelas" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
                 <SelectContent>
-                  {classes.map((c: any) => (
+                  {(classes as any[]).map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -714,14 +709,8 @@ const Students = () => {
             </div>
             <div className="space-y-2">
               <Label>URL Foto Siswa</Label>
-              <Input
-                value={editPhotoUrl}
-                onChange={(e) => setEditPhotoUrl(e.target.value)}
-                placeholder="https://... atau link Google Drive"
-              />
-              <p className="text-xs text-muted-foreground">
-                Tempelkan URL foto langsung atau link Google Drive. Link GDrive akan otomatis dikonversi.
-              </p>
+              <Input value={editPhotoUrl} onChange={(e) => setEditPhotoUrl(e.target.value)} placeholder="https://... atau link Google Drive" />
+              <p className="text-xs text-muted-foreground">Tempelkan URL foto langsung atau link Google Drive. Link GDrive akan otomatis dikonversi.</p>
               {editPhotoUrl && (
                 <div className="flex items-center gap-3 pt-1">
                   <img
@@ -747,74 +736,35 @@ const Students = () => {
               Input NIS — {batchNisData?.className}
             </DialogTitle>
           </DialogHeader>
-
-          {/* Paste mode panel */}
           {batchNisPasteOpen ? (
             <div className="flex flex-col gap-2 flex-1 min-h-0">
-              <p className="text-xs text-muted-foreground">
-                Tempel NIS satu per baris sesuai urutan siswa. Baris kosong tidak akan mengubah NIS siswa tersebut.
-              </p>
-              <Textarea
-                className="flex-1 resize-none font-mono text-xs min-h-[200px]"
-                placeholder={"1234567890\n1234567891\n1234567892\n..."}
-                value={batchNisPasteText}
-                onChange={(e) => setBatchNisPasteText(e.target.value)}
-                autoFocus
-              />
+              <p className="text-xs text-muted-foreground">Tempel NIS satu per baris sesuai urutan siswa. Baris kosong tidak akan mengubah NIS siswa tersebut.</p>
+              <Textarea className="flex-1 resize-none font-mono text-xs min-h-[200px]" placeholder={"1234567890\n1234567891\n..."} value={batchNisPasteText} onChange={(e) => setBatchNisPasteText(e.target.value)} autoFocus />
               <div className="flex gap-2">
-                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={applyPasteToNisInputs}>
-                  Isi ke Daftar
-                </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => { setBatchNisPasteOpen(false); setBatchNisPasteText(""); }}>
-                  Batal
-                </Button>
+                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={applyPasteToNisInputs}>Isi ke Daftar</Button>
+                <Button variant="secondary" className="flex-1" onClick={() => { setBatchNisPasteOpen(false); setBatchNisPasteText(""); }}>Batal</Button>
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  {batchNisInputs.filter(v => v.trim()).length} dari {batchNisData?.items.length || 0} siswa terisi NIS
-                </p>
-                <button
-                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                  onClick={() => setBatchNisPasteOpen(true)}
-                >
+                <p className="text-xs text-muted-foreground">{batchNisInputs.filter(v => v.trim()).length} dari {batchNisData?.items.length || 0} siswa terisi NIS</p>
+                <button className="text-xs text-blue-600 hover:underline flex items-center gap-1" onClick={() => setBatchNisPasteOpen(true)}>
                   <Hash className="h-3 w-3" />Paste semua sekaligus
                 </button>
               </div>
-
-              {/* Inline input per siswa */}
               <div className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
                 {batchNisData?.items.map((s: any, i: number) => (
                   <div key={s.id} className="flex items-center gap-3 py-1 border-b border-border/40 last:border-0">
                     <span className="text-muted-foreground text-xs w-6 text-right flex-shrink-0">{i + 1}.</span>
                     <span className="flex-1 text-sm font-medium truncate min-w-0">{s.name}</span>
-                    <Input
-                      className="w-36 flex-shrink-0 h-8 text-xs font-mono"
-                      placeholder="Ketik NIS..."
-                      value={batchNisInputs[i] || ""}
-                      onChange={(e) => {
-                        const next = [...batchNisInputs];
-                        next[i] = e.target.value;
-                        setBatchNisInputs(next);
-                      }}
-                    />
+                    <Input className="w-36 flex-shrink-0 h-8 text-xs font-mono" placeholder="Ketik NIS..." value={batchNisInputs[i] || ""} onChange={(e) => { const next = [...batchNisInputs]; next[i] = e.target.value; setBatchNisInputs(next); }} />
                   </div>
                 ))}
               </div>
-
               <div className="flex gap-3 pt-2">
-                <Button
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={handleBatchNisSave}
-                  disabled={batchNisMutation.isPending}
-                >
-                  {batchNisMutation.isPending ? "Menyimpan..." : "Simpan Semua"}
-                </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => setBatchNisOpen(false)}>
-                  Batal
-                </Button>
+                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleBatchNisSave} disabled={batchNisMutation.isPending}>{batchNisMutation.isPending ? "Menyimpan..." : "Simpan Semua"}</Button>
+                <Button variant="secondary" className="flex-1" onClick={() => setBatchNisOpen(false)}>Batal</Button>
               </div>
             </>
           )}
@@ -829,25 +779,16 @@ const Students = () => {
               Input Foto Massal — {batchPhotoData?.className}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-1">
-            Isi satu URL foto per baris sesuai urutan nama siswa di bawah. Bisa URL langsung atau link Google Drive.
-          </p>
+          <p className="text-xs text-muted-foreground -mt-1">Isi satu URL foto per baris sesuai urutan nama siswa di bawah.</p>
           <div className="flex gap-3 flex-1 min-h-0 overflow-hidden">
             <div className="w-52 flex-shrink-0 overflow-y-auto rounded border border-border bg-muted/30 p-2 text-xs space-y-1">
               {batchPhotoData?.items.map((s: any, i: number) => (
                 <div key={s.id} className="flex items-center gap-2 py-0.5">
                   <span className="text-muted-foreground w-5 text-right flex-shrink-0">{i + 1}.</span>
                   {s.photo_url ? (
-                    <img
-                      src={convertGDriveLink(s.photo_url)}
-                      alt={s.name}
-                      className="w-6 h-6 rounded-full object-cover border border-border flex-shrink-0"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
+                    <img src={convertGDriveLink(s.photo_url)} alt={s.name} className="w-6 h-6 rounded-full object-cover border border-border flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center text-[9px] text-muted-foreground flex-shrink-0">
-                      {s.name.charAt(0)}
-                    </div>
+                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center text-[9px] text-muted-foreground flex-shrink-0">{s.name.charAt(0)}</div>
                   )}
                   <span className="truncate font-medium">{s.name}</span>
                 </div>
@@ -855,28 +796,13 @@ const Students = () => {
             </div>
             <div className="flex-1 flex flex-col gap-1 min-h-0">
               <Label className="text-xs text-muted-foreground">URL Foto (1 baris = 1 siswa, sesuai urutan kiri)</Label>
-              <Textarea
-                className="flex-1 resize-none font-mono text-xs"
-                placeholder={"https://link-foto-siswa-1.jpg\nhttps://link-foto-siswa-2.jpg\n..."}
-                value={batchPhotoUrls}
-                onChange={(e) => setBatchPhotoUrls(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                {batchPhotoUrls.split("\n").filter(l => l.trim()).length} dari {batchPhotoData?.items.length || 0} baris terisi
-              </p>
+              <Textarea className="flex-1 resize-none font-mono text-xs" placeholder={"https://link-foto-siswa-1.jpg\nhttps://link-foto-siswa-2.jpg\n..."} value={batchPhotoUrls} onChange={(e) => setBatchPhotoUrls(e.target.value)} />
+              <p className="text-xs text-muted-foreground">{batchPhotoUrls.split("\n").filter(l => l.trim()).length} dari {batchPhotoData?.items.length || 0} baris terisi</p>
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <Button
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={handleBatchPhotoSave}
-              disabled={batchPhotoMutation.isPending}
-            >
-              {batchPhotoMutation.isPending ? "Menyimpan..." : `Simpan Semua (${batchPhotoData?.items.length || 0} Siswa)`}
-            </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => setBatchPhotoOpen(false)}>
-              Batal
-            </Button>
+            <Button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white" onClick={handleBatchPhotoSave} disabled={batchPhotoMutation.isPending}>{batchPhotoMutation.isPending ? "Menyimpan..." : `Simpan Semua (${batchPhotoData?.items.length || 0} Siswa)`}</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => setBatchPhotoOpen(false)}>Batal</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -889,14 +815,10 @@ const Students = () => {
               Input Jenis Kelamin — {batchGenderData?.className}
             </DialogTitle>
           </DialogHeader>
-
           {batchGenderPasteOpen ? (
             <div className="flex flex-col gap-2 flex-1 min-h-0">
-              <p className="text-xs text-muted-foreground">
-                Tempel L atau P satu per baris sesuai urutan siswa di bawah. Baris kosong tidak mengubah nilai yang sudah ada.
-              </p>
+              <p className="text-xs text-muted-foreground">Tempel L atau P satu per baris sesuai urutan siswa. Baris kosong tidak mengubah nilai yang sudah ada.</p>
               <div className="flex gap-2 flex-1 min-h-0 overflow-hidden">
-                {/* Nama siswa — referensi urutan */}
                 <div className="w-44 flex-shrink-0 overflow-y-auto rounded border border-border bg-muted/30 p-2 text-xs space-y-0">
                   {batchGenderData?.items.map((s: any, i: number) => {
                     const pastedLines = batchGenderPasteText.split(/\r?\n|\r/);
@@ -906,96 +828,48 @@ const Students = () => {
                       <div key={s.id} className="flex items-center gap-1.5 py-0.5 border-b border-border/30 last:border-0">
                         <span className="text-muted-foreground w-5 text-right flex-shrink-0 text-[10px]">{i + 1}.</span>
                         <span className="flex-1 truncate font-medium text-[11px]">{s.name}</span>
-                        {valid && (
-                          <span className={`text-[10px] font-bold px-1 rounded ${val === "L" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"}`}>{val}</span>
-                        )}
+                        {valid && <span className={`text-[10px] font-bold px-1 rounded ${val === "L" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"}`}>{val}</span>}
                       </div>
                     );
                   })}
                 </div>
-                {/* Textarea input */}
                 <div className="flex-1 flex flex-col gap-1 min-h-0">
                   <Label className="text-[11px] text-muted-foreground">Ketik atau tempel L/P (1 baris = 1 siswa)</Label>
-                  <Textarea
-                    className="flex-1 resize-none font-mono text-xs"
-                    placeholder={"L\nP\nL\nP\n..."}
-                    value={batchGenderPasteText}
-                    onChange={(e) => setBatchGenderPasteText(e.target.value)}
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    {batchGenderPasteText.split(/\r?\n|\r/).filter(l => ["L","l","P","p"].includes(l.trim())).length} dari {batchGenderData?.items.length || 0} baris terisi (L/P)
-                  </p>
+                  <Textarea className="flex-1 resize-none font-mono text-xs" placeholder={"L\nP\nL\nP\n..."} value={batchGenderPasteText} onChange={(e) => setBatchGenderPasteText(e.target.value)} autoFocus />
+                  <p className="text-[11px] text-muted-foreground">{batchGenderPasteText.split(/\r?\n|\r/).filter(l => ["L","l","P","p"].includes(l.trim())).length} dari {batchGenderData?.items.length || 0} baris terisi (L/P)</p>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button className="flex-1 bg-pink-600 hover:bg-pink-700 text-white" onClick={applyPasteToGenderValues}>
-                  Isi ke Daftar
-                </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => { setBatchGenderPasteOpen(false); setBatchGenderPasteText(""); }}>
-                  Batal
-                </Button>
+                <Button className="flex-1 bg-pink-600 hover:bg-pink-700 text-white" onClick={applyPasteToGenderValues}>Isi ke Daftar</Button>
+                <Button variant="secondary" className="flex-1" onClick={() => { setBatchGenderPasteOpen(false); setBatchGenderPasteText(""); }}>Batal</Button>
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
-                  <button
-                    className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
-                    onClick={() => setBatchGenderValues(prev => prev.map(() => "L"))}
-                  >Semua L</button>
-                  <button
-                    className="text-xs font-bold px-3 py-1 rounded-full bg-pink-100 text-pink-700 hover:bg-pink-200 border border-pink-300 transition-colors"
-                    onClick={() => setBatchGenderValues(prev => prev.map(() => "P"))}
-                  >Semua P</button>
-                  <button
-                    className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 border border-border transition-colors"
-                    onClick={() => setBatchGenderValues(prev => prev.map(() => ""))}
-                  >Hapus Semua</button>
+                  <button className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors" onClick={() => setBatchGenderValues(prev => prev.map(() => "L"))}>Semua L</button>
+                  <button className="text-xs font-bold px-3 py-1 rounded-full bg-pink-100 text-pink-700 hover:bg-pink-200 border border-pink-300 transition-colors" onClick={() => setBatchGenderValues(prev => prev.map(() => "P"))}>Semua P</button>
+                  <button className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 border border-border transition-colors" onClick={() => setBatchGenderValues(prev => prev.map(() => ""))}>Hapus Semua</button>
                 </div>
-                <button
-                  className="text-xs text-pink-600 hover:underline flex items-center gap-1"
-                  onClick={() => setBatchGenderPasteOpen(true)}
-                >
-                  Paste L/P sekaligus
-                </button>
+                <button className="text-xs text-pink-600 hover:underline flex items-center gap-1" onClick={() => setBatchGenderPasteOpen(true)}>Paste L/P sekaligus</button>
               </div>
-
-              <p className="text-xs text-muted-foreground">
-                {batchGenderValues.filter(v => v === "L" || v === "P").length} dari {batchGenderData?.items.length || 0} siswa terisi
-              </p>
-
+              <p className="text-xs text-muted-foreground">{batchGenderValues.filter(v => v === "L" || v === "P").length} dari {batchGenderData?.items.length || 0} siswa terisi</p>
               <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 min-h-0">
                 {batchGenderData?.items.map((s: any, i: number) => (
                   <div key={s.id} className="flex items-center gap-3 py-1.5 border-b border-border/40 last:border-0">
                     <span className="text-muted-foreground text-xs w-6 text-right flex-shrink-0">{i + 1}.</span>
                     <span className="flex-1 text-sm font-medium truncate min-w-0">{s.name}</span>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button
-                        className={`w-9 h-8 rounded-lg text-sm font-bold border-2 transition-all ${batchGenderValues[i] === "L" ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-transparent border-blue-200 text-blue-500 hover:bg-blue-50"}`}
-                        onClick={() => setBatchGenderValues(prev => { const n = [...prev]; n[i] = n[i] === "L" ? "" : "L"; return n; })}
-                      >L</button>
-                      <button
-                        className={`w-9 h-8 rounded-lg text-sm font-bold border-2 transition-all ${batchGenderValues[i] === "P" ? "bg-pink-500 border-pink-500 text-white shadow-md" : "bg-transparent border-pink-200 text-pink-500 hover:bg-pink-50"}`}
-                        onClick={() => setBatchGenderValues(prev => { const n = [...prev]; n[i] = n[i] === "P" ? "" : "P"; return n; })}
-                      >P</button>
+                      <button className={`w-9 h-8 rounded-lg text-sm font-bold border-2 transition-all ${batchGenderValues[i] === "L" ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-transparent border-blue-200 text-blue-500 hover:bg-blue-50"}`} onClick={() => setBatchGenderValues(prev => { const n = [...prev]; n[i] = n[i] === "L" ? "" : "L"; return n; })}>L</button>
+                      <button className={`w-9 h-8 rounded-lg text-sm font-bold border-2 transition-all ${batchGenderValues[i] === "P" ? "bg-pink-500 border-pink-500 text-white shadow-md" : "bg-transparent border-pink-200 text-pink-500 hover:bg-pink-50"}`} onClick={() => setBatchGenderValues(prev => { const n = [...prev]; n[i] = n[i] === "P" ? "" : "P"; return n; })}>P</button>
                     </div>
                   </div>
                 ))}
               </div>
-
               <div className="flex gap-3 pt-2">
-                <Button
-                  className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
-                  onClick={handleBatchGenderSave}
-                  disabled={batchGenderMutation.isPending}
-                >
-                  {batchGenderMutation.isPending ? "Menyimpan..." : "Simpan Semua"}
-                </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => setBatchGenderOpen(false)}>
-                  Batal
-                </Button>
+                <Button className="flex-1 bg-pink-600 hover:bg-pink-700 text-white" onClick={handleBatchGenderSave} disabled={batchGenderMutation.isPending}>{batchGenderMutation.isPending ? "Menyimpan..." : "Simpan Semua"}</Button>
+                <Button variant="secondary" className="flex-1" onClick={() => setBatchGenderOpen(false)}>Batal</Button>
               </div>
             </>
           )}
@@ -1009,22 +883,10 @@ const Students = () => {
               <Info className="h-8 w-8 text-primary/60" />
             </div>
             <h2 className="text-lg font-bold text-foreground">Cetak Kartu Pelajar</h2>
-            <p className="text-sm text-muted-foreground">
-              Mencetak {printDialogData?.items.length || 0} kartu. Layout: 8 Kartu per Halaman (A4).
-            </p>
+            <p className="text-sm text-muted-foreground">Mencetak {printDialogData?.items.length || 0} kartu. Layout: 8 Kartu per Halaman (A4).</p>
             <div className="flex gap-3 w-full">
-              <Button
-                className="flex-1 bg-gradient-to-r from-[hsl(152,60%,45%)] to-[hsl(142,71%,45%)] text-white"
-                onClick={() => {
-                  if (printDialogData) downloadAllCards(printDialogData.items, printDialogData.className);
-                  setPrintDialogOpen(false);
-                }}
-              >
-                Cetak Sekarang
-              </Button>
-              <Button variant="secondary" className="flex-1" onClick={() => setPrintDialogOpen(false)}>
-                Batal
-              </Button>
+              <Button className="flex-1 bg-gradient-to-r from-[hsl(152,60%,45%)] to-[hsl(142,71%,45%)] text-white" onClick={() => { if (printDialogData) downloadAllCards(printDialogData.items, printDialogData.className); setPrintDialogOpen(false); }}>Cetak Sekarang</Button>
+              <Button variant="secondary" className="flex-1" onClick={() => setPrintDialogOpen(false)}>Batal</Button>
             </div>
           </div>
         </DialogContent>
@@ -1037,22 +899,10 @@ const Students = () => {
               <Info className="h-8 w-8 text-primary/60" />
             </div>
             <h2 className="text-lg font-bold text-foreground">Cetak Kartu Pelajar</h2>
-            <p className="text-sm text-muted-foreground">
-              Mencetak 1 kartu untuk {singlePrintData?.student?.name || ""}.
-            </p>
+            <p className="text-sm text-muted-foreground">Mencetak 1 kartu untuk {singlePrintData?.student?.name || ""}.</p>
             <div className="flex gap-3 w-full">
-              <Button
-                className="flex-1 bg-gradient-to-r from-[hsl(152,60%,45%)] to-[hsl(142,71%,45%)] text-white"
-                onClick={() => {
-                  if (singlePrintData) downloadCard(singlePrintData.student, singlePrintData.className);
-                  setSinglePrintDialogOpen(false);
-                }}
-              >
-                Cetak Sekarang
-              </Button>
-              <Button variant="secondary" className="flex-1" onClick={() => setSinglePrintDialogOpen(false)}>
-                Batal
-              </Button>
+              <Button className="flex-1 bg-gradient-to-r from-[hsl(152,60%,45%)] to-[hsl(142,71%,45%)] text-white" onClick={() => { if (singlePrintData) downloadCard(singlePrintData.student, singlePrintData.className); setSinglePrintDialogOpen(false); }}>Cetak Sekarang</Button>
+              <Button variant="secondary" className="flex-1" onClick={() => setSinglePrintDialogOpen(false)}>Batal</Button>
             </div>
           </div>
         </DialogContent>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { Plus, Pencil, Trash2, School, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 const Classes = () => {
   const [name, setName] = useState("");
@@ -31,16 +31,29 @@ const Classes = () => {
 
   const { data: classes = [], isLoading } = useQuery({
     queryKey: ["classes"],
-    queryFn: () => fetch("/api/classes", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("*").order("name");
+      return data ?? [];
+    },
   });
 
   const { data: studentCounts = {} } = useQuery({
     queryKey: ["student-counts"],
-    queryFn: () => fetch("/api/students/counts", { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("students").select("class_id");
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((s: any) => {
+        counts[s.class_id] = (counts[s.class_id] || 0) + 1;
+      });
+      return counts;
+    },
   });
 
   const addMutation = useMutation({
-    mutationFn: (className: string) => apiRequest("POST", "/api/classes", { name: className }),
+    mutationFn: async (className: string) => {
+      const { error } = await supabase.from("classes").insert({ name: className });
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["classes"] });
       toast({ title: "Kelas ditambahkan" });
@@ -50,10 +63,11 @@ const Classes = () => {
   });
 
   const addBatchMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const names = batchText.split("\n").map(n => n.trim()).filter(Boolean);
       if (names.length === 0) throw new Error("Tidak ada nama kelas");
-      return apiRequest("POST", "/api/classes", { names });
+      const { error } = await supabase.from("classes").insert(names.map(n => ({ name: n })));
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["classes"] });
@@ -64,9 +78,15 @@ const Classes = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!editId) return;
-      return apiRequest("PATCH", `/api/classes/${editId}`, { name: editName, wa_group_id: editWaGroupId || null, wali_kelas: editWaliKelas || null, wali_kelas_nip: editWaliKelasNip || null });
+      const { error } = await supabase.from("classes").update({
+        name: editName,
+        wa_group_id: editWaGroupId || null,
+        wali_kelas: editWaliKelas || null,
+        wali_kelas_nip: editWaliKelasNip || null,
+      }).eq("id", editId);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["classes"] });
@@ -77,7 +97,10 @@ const Classes = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/classes/${id}`),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("classes").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["classes"] });
       toast({ title: "Kelas dihapus" });
@@ -169,7 +192,6 @@ const Classes = () => {
                         <TableCell className="font-medium">
                           <div>
                             <p>{cls.name}</p>
-                            {/* Grup WA shown below name on mobile */}
                             {cls.wa_group_id && (
                               <span className="md:hidden flex items-center gap-1 text-[11px] text-green-600 dark:text-green-400 mt-0.5">
                                 <MessageCircle className="h-3 w-3" />{cls.wa_group_id}
@@ -179,7 +201,7 @@ const Classes = () => {
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 rounded-full px-3">
-                            {studentCounts[cls.id] || 0}
+                            {(studentCounts as any)[cls.id] || 0}
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
@@ -197,7 +219,14 @@ const Classes = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-warning"
-                              onClick={() => { setEditId(cls.id); setEditName(cls.name); setEditWaGroupId(cls.wa_group_id || ""); setEditWaliKelas(cls.wali_kelas || ""); setEditWaliKelasNip(cls.wali_kelas_nip || ""); setEditOpen(true); }}
+                              onClick={() => {
+                                setEditId(cls.id);
+                                setEditName(cls.name);
+                                setEditWaGroupId(cls.wa_group_id || "");
+                                setEditWaliKelas(cls.wali_kelas || "");
+                                setEditWaliKelasNip(cls.wali_kelas_nip || "");
+                                setEditOpen(true);
+                              }}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,14 +10,8 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { convertGDriveLink } from "@/lib/gdrive";
 import { getWebConfig } from "@/lib/queryClient";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
@@ -43,20 +36,25 @@ const Index = () => {
     refetchOnMount: false,
   });
 
-  // Proxy agar gambar logo selalu muat di HP (hindari redirect/CORS Google Drive)
   const logoUrl = webConfig?.logo_url
-    ? `/api/proxy-image?url=${encodeURIComponent(convertGDriveLink(webConfig.logo_url))}`
+    ? convertGDriveLink(webConfig.logo_url)
     : null;
 
   const { data: holidays = [] } = useQuery({
     queryKey: ["public-holidays"],
-    queryFn: () => fetch("/api/holidays").then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("holidays").select("*");
+      return data ?? [];
+    },
     staleTime: 10 * 60_000,
   });
 
   const { data: attendanceSettings = [] } = useQuery({
     queryKey: ["public-attendance-settings"],
-    queryFn: () => fetch("/api/attendance-settings").then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("attendance_settings").select("*");
+      return data ?? [];
+    },
     staleTime: 10 * 60_000,
   });
 
@@ -66,10 +64,8 @@ const Index = () => {
   const todayDayName = DAY_NAMES_ID[dayOfWeek];
 
   const todaySetting = (attendanceSettings as any[]).find((s: any) => s.day_of_week === todayDayName);
-  // Jika tidak ada setting untuk hari ini → default nonaktif agar aman
   const isTodayEnabled = todaySetting ? todaySetting.enabled === true : false;
 
-  // Hari libur wajib: ada di daftar hari libur (selalu blokir, terlepas dari setting)
   const todayHolidayInfo = (holidays as any[]).find((h: any) => {
     const start = h.startDate || h.start_date;
     const end = h.endDate || h.end_date;
@@ -77,20 +73,23 @@ const Index = () => {
   }) ?? null;
   const isInHolidayList = !!todayHolidayInfo;
 
-  // Weekend: Sabtu/Minggu yang belum diaktifkan di setting
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
   const { data: classes = [] } = useQuery({
     queryKey: ["public-classes"],
-    queryFn: () => fetch("/api/classes").then(r => r.json()),
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("*").order("name");
+      return data ?? [];
+    },
     staleTime: 5 * 60_000,
   });
 
   const { data: students = [] } = useQuery({
     queryKey: ["public-students", classId],
-    queryFn: () => {
+    queryFn: async () => {
       if (!classId) return [];
-      return fetch(`/api/students?class_id=${classId}`).then(r => r.json());
+      const { data } = await supabase.from("students").select("id, name, nis").eq("class_id", classId).order("name");
+      return data ?? [];
     },
     enabled: !!classId,
     staleTime: 0,
@@ -99,16 +98,19 @@ const Index = () => {
 
   const { data: existingRecords = [] } = useQuery({
     queryKey: ["existing-record", studentId, todayStr],
-    queryFn: () => {
+    queryFn: async () => {
       if (!studentId) return [];
-      return fetch(`/api/attendance?student_id=${studentId}&date=${todayStr}&status=hadir,izin,sakit,alpa`).then(r => r.json());
+      const { data } = await supabase.from("attendance_records")
+        .select("*")
+        .eq("student_id", studentId)
+        .eq("date", todayStr)
+        .in("status", ["hadir", "izin", "sakit", "alpa"]);
+      return data ?? [];
     },
     enabled: !!studentId,
   });
 
-  // hadir (scan QR / input manual) → langsung blokir meski tidak ada validation_status
-  const hadirRecord  = (existingRecords as any[]).find((r: any) => r.status === "hadir");
-  // izin/sakit yang sudah dikirim dan belum ditolak
+  const hadirRecord = (existingRecords as any[]).find((r: any) => r.status === "hadir");
   const izinSakitRecord = (existingRecords as any[]).find(
     (r: any) => (r.status === "izin" || r.status === "sakit") && r.validation_status !== "rejected"
   );
@@ -116,26 +118,22 @@ const Index = () => {
 
   const handleSubmitClick = () => {
     if (isInHolidayList) { setShowHolidayDialog(true); return; }
-    if (hadirRecord) {
-      setRejectionReason("hadir");
-      setShowRejectionDialog(true);
-      return;
-    }
-    if (izinSakitRecord) {
-      setRejectionReason("izin_sakit");
-      setShowRejectionDialog(true);
-      return;
-    }
+    if (hadirRecord) { setRejectionReason("hadir"); setShowRejectionDialog(true); return; }
+    if (izinSakitRecord) { setRejectionReason("izin_sakit"); setShowRejectionDialog(true); return; }
     submitMutation.mutate();
   };
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const serverCheck: any[] = await fetch(
-        `/api/attendance?student_id=${studentId}&date=${todayStr}&status=hadir,izin,sakit,alpa`
-      ).then(r => r.json());
-      const serverHadir = serverCheck.find((r: any) => r.status === "hadir");
-      const serverIzinSakit = serverCheck.find(
+      const { data: serverCheck } = await supabase
+        .from("attendance_records")
+        .select("*")
+        .eq("student_id", studentId)
+        .eq("date", todayStr)
+        .in("status", ["hadir", "izin", "sakit", "alpa"]);
+
+      const serverHadir = (serverCheck ?? []).find((r: any) => r.status === "hadir");
+      const serverIzinSakit = (serverCheck ?? []).find(
         (r: any) => (r.status === "izin" || r.status === "sakit") && r.validation_status !== "rejected"
       );
       if (serverHadir || serverIzinSakit) {
@@ -143,7 +141,16 @@ const Index = () => {
         setRejectionReason(reason);
         throw new Error("Sudah tercatat absensi hari ini.");
       }
-      await apiRequest("POST", "/api/attendance", { student_id: studentId, class_id: classId, date: todayStr, status, notes: notes || null });
+
+      const { error } = await supabase.from("attendance_records").insert({
+        student_id: studentId,
+        class_id: classId,
+        date: todayStr,
+        status,
+        notes: notes || null,
+        validation_status: "pending",
+      });
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       setShowSuccessDialog(true);
@@ -161,12 +168,9 @@ const Index = () => {
 
   return (
     <div className="animate-slide-left">
-      {/* ── Card ── */}
       <div className="rounded-2xl overflow-hidden bg-white border border-slate-200/80 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.22)]" style={{ transform: "translateZ(0)" }}>
 
-        {/* Header */}
         <div className="flex flex-col items-center pt-6 pb-5 px-6 text-center">
-          {/* Logo */}
           <div className="mb-3">
             {logoUrl && !logoError
               ? <img
@@ -177,8 +181,6 @@ const Index = () => {
                 />
               : <div className="w-20 h-20 flex items-center justify-center"><GraduationCap className="h-12 w-12 text-violet-600" /></div>}
           </div>
-
-          {/* Title */}
           <h1
             className="text-[22px] font-black tracking-widest text-slate-800 leading-tight"
             style={{ fontFamily: "'Cinzel Decorative', serif" }}
@@ -188,12 +190,9 @@ const Index = () => {
           <p className="text-slate-600 text-[12px] mt-0.5 tracking-wide">{appSubtitle}</p>
         </div>
 
-        {/* Divider */}
         <div className="mx-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
-        {/* ── Konten utama: libur wajib / libur weekend / nonaktif / form ── */}
         {isInHolidayList ? (
-          /* State Hari Libur Wajib (dari Daftar Hari Libur) */
           <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
               <CalendarOff className="h-8 w-8 text-white" strokeWidth={2} />
@@ -215,9 +214,7 @@ const Index = () => {
                     const dt = new Date(d + "T00:00:00");
                     return `${dt.getDate()} ${BULAN[dt.getMonth()]} ${dt.getFullYear()}`;
                   };
-                  if (start && end && start !== end) {
-                    return `${fmt(start)} – ${fmt(end)}`;
-                  }
+                  if (start && end && start !== end) return `${fmt(start)} – ${fmt(end)}`;
                   return "Tidak dapat mengirim laporan absensi hari ini.";
                 })()}
               </p>
@@ -230,7 +227,6 @@ const Index = () => {
             </div>
           </div>
         ) : !isTodayEnabled && isWeekend ? (
-          /* State Hari Libur Weekend (Sabtu/Minggu belum diaktifkan) */
           <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-lg shadow-rose-400/30">
               <CalendarOff className="h-8 w-8 text-white" strokeWidth={2} />
@@ -254,7 +250,6 @@ const Index = () => {
             </div>
           </div>
         ) : !isTodayEnabled ? (
-          /* State Belum Aktif (hari biasa tapi nonaktif oleh admin) */
           <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center shadow-lg shadow-slate-400/30">
               <PowerOff className="h-8 w-8 text-white" strokeWidth={2} />
@@ -278,10 +273,7 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          /* Form normal */
           <div className="px-6 py-5 space-y-4">
-
-            {/* Kelas */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-slate-600 tracking-widest uppercase">Pilih Kelas</p>
               <Select value={classId} onValueChange={(v) => { setClassId(v); setStudentId(""); setStudentOpen(false); }}>
@@ -294,7 +286,6 @@ const Index = () => {
               </Select>
             </div>
 
-            {/* Siswa */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-slate-600 tracking-widest uppercase">Pilih Siswa</p>
               <Popover open={studentOpen && !!classId} onOpenChange={(o) => classId && setStudentOpen(o)}>
@@ -333,10 +324,7 @@ const Index = () => {
                         <CommandItem
                           key={s.id}
                           value={s.name}
-                          onSelect={() => {
-                            setStudentId(s.id);
-                            setStudentOpen(false);
-                          }}
+                          onSelect={() => { setStudentId(s.id); setStudentOpen(false); }}
                           className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 cursor-pointer hover:bg-violet-50 aria-selected:bg-violet-50"
                         >
                           <Check className={`h-4 w-4 shrink-0 text-violet-500 ${studentId === s.id ? "opacity-100" : "opacity-0"}`} />
@@ -349,7 +337,6 @@ const Index = () => {
               </Popover>
             </div>
 
-            {/* Status */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-slate-600 tracking-widest uppercase">Status Kehadiran</p>
               <div className="grid grid-cols-2 gap-2">
@@ -357,9 +344,7 @@ const Index = () => {
                   type="button"
                   onClick={() => setStatus("izin")}
                   className={`flex items-center justify-center gap-2 h-11 rounded-xl border-2 font-semibold text-sm transition-[background-color,border-color,color] duration-150 ${
-                    status === "izin"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
+                    status === "izin" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 bg-slate-50 text-slate-600"
                   }`}
                 >
                   <Clock className={`h-4 w-4 ${status === "izin" ? "text-blue-500" : "text-slate-400"}`} />
@@ -369,9 +354,7 @@ const Index = () => {
                   type="button"
                   onClick={() => setStatus("sakit")}
                   className={`flex items-center justify-center gap-2 h-11 rounded-xl border-2 font-semibold text-sm transition-[background-color,border-color,color] duration-150 ${
-                    status === "sakit"
-                      ? "border-amber-400 bg-amber-50 text-amber-700"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
+                    status === "sakit" ? "border-amber-400 bg-amber-50 text-amber-700" : "border-slate-200 bg-slate-50 text-slate-600"
                   }`}
                 >
                   <Stethoscope className={`h-4 w-4 ${status === "sakit" ? "text-amber-500" : "text-slate-400"}`} />
@@ -380,7 +363,6 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Keterangan */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-slate-600 tracking-widest uppercase">
                 Keterangan <span className="font-normal normal-case text-slate-500">— opsional</span>
@@ -394,7 +376,6 @@ const Index = () => {
               />
             </div>
 
-            {/* Submit */}
             <Button
               onClick={handleSubmitClick}
               disabled={!studentId || submitMutation.isPending}
@@ -404,12 +385,8 @@ const Index = () => {
               {submitMutation.isPending ? "Mengirim..." : "Kirim Laporan"}
             </Button>
 
-            {/* Admin link */}
             <div className="text-center pb-1">
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-violet-600 transition-colors"
-              >
+              <Link to="/login" className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-violet-600 transition-colors">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Masuk sebagai Admin / Guru
               </Link>
@@ -429,9 +406,7 @@ const Index = () => {
             </div>
             <div className="space-y-2">
               <p className="text-[17px] font-bold text-slate-800 leading-snug">Laporan Absensi Terkirim</p>
-              <p className="text-[13px] text-slate-500 leading-relaxed">
-                Mohon tunggu proses validasi.
-              </p>
+              <p className="text-[13px] text-slate-500 leading-relaxed">Mohon tunggu proses validasi.</p>
             </div>
             <button
               onClick={() => setShowSuccessDialog(false)}

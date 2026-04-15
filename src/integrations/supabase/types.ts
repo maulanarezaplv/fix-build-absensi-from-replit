@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
@@ -106,16 +104,25 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          wa_group_id: string | null
+          wali_kelas: string | null
+          wali_kelas_nip: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          wa_group_id?: string | null
+          wali_kelas?: string | null
+          wali_kelas_nip?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          wa_group_id?: string | null
+          wali_kelas?: string | null
+          wali_kelas_nip?: string | null
         }
         Relationships: []
       }
@@ -173,6 +180,7 @@ export type Database = {
           id: string
           name: string
           password: string | null
+          password_hash: string | null
           updated_at: string
           user_id: string
           username: string
@@ -182,6 +190,7 @@ export type Database = {
           id?: string
           name: string
           password?: string | null
+          password_hash?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -191,6 +200,7 @@ export type Database = {
           id?: string
           name?: string
           password?: string | null
+          password_hash?: string | null
           updated_at?: string
           user_id?: string
           username?: string
@@ -201,23 +211,29 @@ export type Database = {
         Row: {
           class_id: string
           created_at: string
+          gender: string | null
           id: string
           name: string
-          nis: string
+          nis: string | null
+          photo_url: string | null
         }
         Insert: {
           class_id: string
           created_at?: string
+          gender?: string | null
           id?: string
           name: string
-          nis: string
+          nis?: string | null
+          photo_url?: string | null
         }
         Update: {
           class_id?: string
           created_at?: string
+          gender?: string | null
           id?: string
           name?: string
-          nis?: string
+          nis?: string | null
+          photo_url?: string | null
         }
         Relationships: [
           {
@@ -251,35 +267,86 @@ export type Database = {
         Row: {
           app_subtitle: string
           app_title: string
+          bg_images: string | null
           bg_url_1: string | null
           bg_url_2: string | null
           bg_url_3: string | null
           bg_url_4: string | null
+          gdrive_auto_backed_up_date: string | null
+          gdrive_auto_backup_enabled: boolean
+          gdrive_auto_backup_schedule: string
+          gdrive_auto_backup_time: string
+          google_connected_email: string | null
+          google_drive_folder_id: string | null
+          google_refresh_token: string | null
           id: string
           logo_url: string | null
+          school_city: string | null
+          school_start_date: string | null
           updated_at: string
+          wa_auto_send_enabled: boolean
+          wa_auto_send_scope: string | null
+          wa_auto_send_time: string
+          wa_auto_sent_date: string | null
+          wa_provider: string | null
+          wa_target_number: string | null
+          wa_token: string | null
         }
         Insert: {
           app_subtitle?: string
           app_title?: string
+          bg_images?: string | null
           bg_url_1?: string | null
           bg_url_2?: string | null
           bg_url_3?: string | null
           bg_url_4?: string | null
+          gdrive_auto_backed_up_date?: string | null
+          gdrive_auto_backup_enabled?: boolean
+          gdrive_auto_backup_schedule?: string
+          gdrive_auto_backup_time?: string
+          google_connected_email?: string | null
+          google_drive_folder_id?: string | null
+          google_refresh_token?: string | null
           id?: string
           logo_url?: string | null
+          school_city?: string | null
+          school_start_date?: string | null
           updated_at?: string
+          wa_auto_send_enabled?: boolean
+          wa_auto_send_scope?: string | null
+          wa_auto_send_time?: string
+          wa_auto_sent_date?: string | null
+          wa_provider?: string | null
+          wa_target_number?: string | null
+          wa_token?: string | null
         }
         Update: {
           app_subtitle?: string
           app_title?: string
+          bg_images?: string | null
           bg_url_1?: string | null
           bg_url_2?: string | null
           bg_url_3?: string | null
           bg_url_4?: string | null
+          gdrive_auto_backed_up_date?: string | null
+          gdrive_auto_backup_enabled?: boolean
+          gdrive_auto_backup_schedule?: string
+          gdrive_auto_backup_time?: string
+          google_connected_email?: string | null
+          google_drive_folder_id?: string | null
+          google_refresh_token?: string | null
           id?: string
           logo_url?: string | null
+          school_city?: string | null
+          school_start_date?: string | null
           updated_at?: string
+          wa_auto_send_enabled?: boolean
+          wa_auto_send_scope?: string | null
+          wa_auto_send_time?: string
+          wa_auto_sent_date?: string | null
+          wa_provider?: string | null
+          wa_target_number?: string | null
+          wa_token?: string | null
         }
         Relationships: []
       }
@@ -332,13 +399,13 @@ export type Tables<
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  ? (DefaultSchema["Tables"] &
+      DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -358,12 +425,12 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -383,12 +450,12 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
@@ -404,8 +471,8 @@ export type Enums<
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -421,8 +488,8 @@ export type CompositeTypes<
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {
