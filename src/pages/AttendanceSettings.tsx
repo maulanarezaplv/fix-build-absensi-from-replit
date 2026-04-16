@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getWebConfig, invalidateWebConfig, apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebConfig } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CalendarOff, Plus, Trash2, CalendarCheck2, CalendarCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
 
 const AttendanceSettings = () => {
   const { toast } = useToast();
@@ -25,18 +24,12 @@ const AttendanceSettings = () => {
 
   const { data: settings = [] } = useQuery({
     queryKey: ["attendance-settings"],
-    queryFn: async () => {
-      const { data } = await supabase.from("attendance_settings").select("*").order("id");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/attendance-settings", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: holidays = [] } = useQuery({
     queryKey: ["holidays"],
-    queryFn: async () => {
-      const { data } = await supabase.from("holidays").select("*").order("start_date");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/holidays", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: webConfig } = useQuery<any>({
@@ -52,10 +45,7 @@ const AttendanceSettings = () => {
   }, [webConfig]);
 
   const saveSchoolStartMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("PATCH", "/api/web-config", { school_start_date: schoolStart || null });
-      invalidateWebConfig();
-    },
+    mutationFn: () => apiRequest("PATCH", "/api/web-config", { school_start_date: schoolStart || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["web-config"] });
       toast({ title: "Tanggal mulai sekolah disimpan" });
@@ -64,9 +54,8 @@ const AttendanceSettings = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
-      const { error } = await supabase.from("attendance_settings").update({ [field]: value }).eq("id", id);
-      if (error) throw new Error(error.message);
+    mutationFn: ({ id, field, value }: { id: string; field: string; value: any }) => {
+      return apiRequest("PATCH", `/api/attendance-settings/${id}`, { [field]: value });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["attendance-settings"] });
@@ -75,14 +64,11 @@ const AttendanceSettings = () => {
   });
 
   const addHolidayMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("holidays").insert({
-        start_date: startDate,
-        end_date: endDate || startDate,
-        description,
-      });
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: () => apiRequest("POST", "/api/holidays", {
+      start_date: startDate,
+      end_date: endDate || startDate,
+      description,
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["holidays"] });
       toast({ title: "Hari libur ditambahkan" });
@@ -94,10 +80,7 @@ const AttendanceSettings = () => {
   });
 
   const deleteHolidayMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("holidays").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/holidays/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["holidays"] });
       toast({ title: "Hari libur dihapus" });
@@ -108,6 +91,8 @@ const AttendanceSettings = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+
+      {/* ── Page heading ── */}
       <div>
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-sm shadow-emerald-500/30">
@@ -176,7 +161,7 @@ const AttendanceSettings = () => {
         </CardHeader>
         <CardContent className="p-4">
           <div className="grid gap-3">
-            {(settings as any[]).map((s: any) => {
+            {settings.map((s: any) => {
               const isWeekend = weekendDays.includes(s.day_of_week);
               return (
                 <div
@@ -295,14 +280,14 @@ const AttendanceSettings = () => {
             </Button>
           </div>
 
-          {(holidays as any[]).length === 0 ? (
+          {holidays.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <CalendarOff className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">Belum ada hari libur yang ditambahkan</p>
             </div>
           ) : (
             <div className="grid gap-2">
-              {(holidays as any[]).map((h: any) => (
+              {holidays.map((h: any) => (
                 <div key={h.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3 shadow-sm">
                   <div>
                     <p className="font-semibold text-sm text-foreground">{h.description}</p>

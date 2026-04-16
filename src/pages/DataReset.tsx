@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +17,6 @@ import {
   CalendarCheck, Trash2, TriangleAlert, CheckCircle2, ShieldOff, HardDriveUpload,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ResetAction {
   id: string;
@@ -25,6 +25,7 @@ interface ResetAction {
   icon: any;
   color: string;
   iconBg: string;
+  endpoint: string;
   withYear?: boolean;
   confirmWord: string;
 }
@@ -37,6 +38,7 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: ClipboardList,
     color: "text-amber-600",
     iconBg: "bg-amber-50 dark:bg-amber-950/40",
+    endpoint: "/api/reset/attendance",
     withYear: true,
     confirmWord: "HAPUS ABSENSI",
   },
@@ -47,15 +49,17 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: Users,
     color: "text-blue-600",
     iconBg: "bg-blue-50 dark:bg-blue-950/40",
+    endpoint: "/api/reset/students",
     confirmWord: "HAPUS SISWA",
   },
   {
     id: "users",
     label: "Akun Guru",
-    desc: "Menghapus semua akun Guru dari daftar. Akun Admin tetap aman.",
+    desc: "Menghapus semua akun Guru. Akun Admin tetap aman dan tidak ikut terhapus.",
     icon: BookUser,
     color: "text-violet-600",
     iconBg: "bg-violet-50 dark:bg-violet-950/40",
+    endpoint: "/api/reset/users",
     confirmWord: "HAPUS GURU",
   },
   {
@@ -65,6 +69,7 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: CalendarOff,
     color: "text-orange-600",
     iconBg: "bg-orange-50 dark:bg-orange-950/40",
+    endpoint: "/api/reset/holidays",
     confirmWord: "HAPUS LIBUR",
   },
   {
@@ -74,6 +79,7 @@ const RESET_ACTIONS: ResetAction[] = [
     icon: CalendarCheck,
     color: "text-teal-600",
     iconBg: "bg-teal-50 dark:bg-teal-950/40",
+    endpoint: "/api/reset/guru-piket",
     confirmWord: "HAPUS PIKET",
   },
 ];
@@ -99,53 +105,14 @@ const DataReset = () => {
   });
 
   const resetMutation = useMutation({
-    mutationFn: async ({ id, year }: { id: string; year?: string }) => {
-      if (id === "attendance") {
-        if (year) {
-          const start = `${year}-01-01`;
-          const end = `${year}-12-31`;
-          const { error } = await supabase.from("attendance_records").delete().gte("date", start).lte("date", end);
-          if (error) throw new Error(error.message);
-        } else {
-          const { error } = await supabase.from("attendance_records").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-          if (error) throw new Error(error.message);
-        }
-      } else if (id === "students") {
-        const { error } = await supabase.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-        if (error) throw new Error(error.message);
-      } else if (id === "users") {
-        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
-        if (adminIds.length > 0) {
-          const { error } = await supabase.from("profiles").delete().not("id", "in", `(${adminIds.join(",")})`);
-          if (error) throw new Error(error.message);
-        } else {
-          const { error } = await supabase.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-          if (error) throw new Error(error.message);
-        }
-      } else if (id === "holidays") {
-        const { error } = await supabase.from("holidays").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-        if (error) throw new Error(error.message);
-      } else if (id === "guru-piket") {
-        const { error } = await supabase.from("guru_piket_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-        if (error) throw new Error(error.message);
-      } else if (id === "all") {
-        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
-        await Promise.all([
-          supabase.from("attendance_records").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
-          supabase.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
-          supabase.from("holidays").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
-          supabase.from("guru_piket_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
-          adminIds.length > 0
-            ? supabase.from("profiles").delete().not("id", "in", `(${adminIds.join(",")})`)
-            : supabase.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
-        ]);
-      }
+    mutationFn: ({ endpoint, year }: { endpoint: string; year?: string }) => {
+      const url = year ? `${endpoint}?year=${year}` : endpoint;
+      return apiRequest("DELETE", url);
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries();
-      setDoneId(vars.id);
+      const action = RESET_ACTIONS.find(a => a.endpoint === vars.endpoint);
+      setDoneId(action?.id || "all");
       setTimeout(() => setDoneId(null), 3000);
       toast({ title: "Berhasil dihapus", description: "Data telah dihapus dari sistem." });
     },
@@ -170,10 +137,10 @@ const DataReset = () => {
   const handleConfirm = () => {
     if (!isValid) return;
     if (pendingAll) {
-      resetMutation.mutate({ id: "all" });
+      resetMutation.mutate({ endpoint: "/api/reset/all" });
     } else if (pending) {
       resetMutation.mutate({
-        id: pending.id,
+        endpoint: pending.endpoint,
         year: pending.withYear && selectedYear ? selectedYear : undefined,
       });
     }
@@ -184,6 +151,8 @@ const DataReset = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+
+      {/* ── Banner ── */}
       <div className="rounded-xl bg-gradient-to-r from-red-600 to-rose-500 px-6 py-5 shadow-lg shadow-red-700/20">
         <div className="flex items-center gap-3 text-white">
           <DatabaseZap className="h-6 w-6 opacity-90" />
@@ -236,6 +205,7 @@ const DataReset = () => {
         </CardContent>
       </Card>
 
+      {/* ── Warning notice ── */}
       <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/50 px-4 py-3">
         <TriangleAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
@@ -247,6 +217,7 @@ const DataReset = () => {
         </div>
       </div>
 
+      {/* ── Individual reset cards ── */}
       <div className="grid gap-3 sm:grid-cols-2">
         {RESET_ACTIONS.map((action) => {
           const Icon = action.icon;
@@ -294,6 +265,7 @@ const DataReset = () => {
         })}
       </div>
 
+      {/* ── Nuclear / Reset All ── */}
       <Card className="border-2 border-red-400/60 dark:border-red-700/50 shadow-sm bg-red-50/50 dark:bg-red-950/20">
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
@@ -324,6 +296,7 @@ const DataReset = () => {
         </CardContent>
       </Card>
 
+      {/* ── Confirmation Dialog ── */}
       <AlertDialog
         open={pending !== null || pendingAll}
         onOpenChange={(o) => { if (!o) { setPending(null); setPendingAll(false); setConfirmInput(""); } }}

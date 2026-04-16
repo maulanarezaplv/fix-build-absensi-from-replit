@@ -1,11 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiRequest } from "@/lib/queryClient";
 
 type AppRole = "admin" | "guru";
 
 type AuthUser = {
   id: string;
-  user_id: string;
   username: string;
   name: string;
   roles: AppRole[];
@@ -41,113 +40,31 @@ function writeCache(user: AuthUser | null) {
   } catch {}
 }
 
-async function fetchUserProfile(supabaseUserId: string): Promise<AuthUser | null> {
-  const [profileRes, rolesRes] = await Promise.all([
-    supabase.from("profiles").select("id, username, name, user_id").eq("user_id", supabaseUserId).single(),
-    supabase.from("user_roles").select("role").eq("user_id", supabaseUserId),
-  ]);
-  if (profileRes.error || !profileRes.data) return null;
-  const profile = profileRes.data;
-  const roles = (rolesRes.data ?? []).map((r: any) => r.role as AppRole);
-  return {
-    id: profile.id,
-    user_id: profile.user_id,
-    username: profile.username,
-    name: profile.name,
-    roles,
-  };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Langsung baca cache dari localStorage — buka tab baru = instan, tidak perlu tunggu server
   const [user, setUser] = useState<AuthUser | null>(readCache);
+  // Jika ada cache, anggap sudah loaded (tidak perlu tampil spinner)
   const [isLoading, setIsLoading] = useState(() => !readCache());
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        setUser(null);
-        writeCache(null);
-        setIsLoading(false);
-        return;
-      }
-      if (session?.user) {
-        const freshUser = await fetchUserProfile(session.user.id);
-        if (freshUser) {
-          if (freshUser.roles.length === 0) {
-            freshUser.roles = ["admin"] as AppRole[];
-          }
-          setUser(freshUser);
-          writeCache(freshUser);
-        }
-        setIsLoading(false);
-      }
-    });
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const freshUser = await fetchUserProfile(session.user.id);
-        if (freshUser) {
-          if (freshUser.roles.length === 0) {
-            freshUser.roles = ["admin"] as AppRole[];
-          }
-          setUser(freshUser);
-          writeCache(freshUser);
-        }
-      } else {
-        const cached = readCache();
-        if (!cached) {
-          setUser(null);
-          writeCache(null);
-        }
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Verifikasi ke server di background — update jika ada perbedaan, tidak blokir UI
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => {
+        const fresh = (data && data.id) ? (data as AuthUser) : null;
+        setUser(fresh);
+        writeCache(fresh);
+      })
+      .catch(() => {
+        // Jika network error, tetap pakai cache (user masih terlihat logged in)
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const signIn = async (username: string, password: string) => {
     try {
-      const email = `${username.trim().toLowerCase()}@eabsensi.internal`;
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (!error && data.user) {
-        const authUser = await fetchUserProfile(data.user.id);
-        if (authUser) {
-          if (authUser.roles.length === 0) {
-            authUser.roles = ["admin"] as AppRole[];
-          }
-          setUser(authUser);
-          writeCache(authUser);
-          return { error: null };
-        }
-      }
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id, username, name, user_id")
-        .eq("username", username.trim().toLowerCase())
-        .single();
-
-      if (!profileData) {
-        return { error: "Username atau password salah" };
-      }
-
-      const { data: rolesData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", profileData.user_id);
-
-      const roles = (rolesData ?? []).map((r: any) => r.role as AppRole);
-
-      const authUser: AuthUser = {
-        id: profileData.id,
-        user_id: profileData.user_id,
-        username: profileData.username,
-        name: profileData.name,
-        roles: roles.length > 0 ? roles : ["admin"],
-      };
+      const data = await apiRequest("POST", "/api/auth/login", { username, password });
+      const authUser = data as AuthUser;
       setUser(authUser);
       writeCache(authUser);
       return { error: null };
@@ -157,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try { await apiRequest("POST", "/api/auth/logout"); } catch {}
     setUser(null);
     writeCache(null);
   };

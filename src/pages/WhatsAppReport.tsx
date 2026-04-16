@@ -1,21 +1,21 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getWebConfig, apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebConfig } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Eye, Send, X, Users, UserX, AlertTriangle, BookOpen, GraduationCap, PowerOff,
-  Clock, Settings2, CheckCircle2, Zap,
-} from "lucide-react";
+import { Eye, Send, X, Users, UserX, AlertTriangle, BookOpen, GraduationCap, PowerOff, Clock, Settings2, CheckCircle2, Zap } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const todayStr = () => new Date().toISOString().split("T")[0];
@@ -38,6 +38,8 @@ const WhatsAppReport = () => {
     classLabel: string;
     totalStudents: number;
     absentCount: number;
+    dateStr: string;
+    perClassTargets?: { classId: string; className: string; waGroupId: string | null }[];
   }>(null);
   const [showDialog, setShowDialog] = useState(false);
 
@@ -48,10 +50,7 @@ const WhatsAppReport = () => {
 
   const { data: classes = [] } = useQuery<any[]>({
     queryKey: ["classes"],
-    queryFn: async () => {
-      const { data } = await supabase.from("classes").select("*").order("name");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/classes", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: waConfig, isLoading: isConfigLoading } = useQuery({
@@ -64,34 +63,47 @@ const WhatsAppReport = () => {
 
   const { data: attendanceSettings = [] } = useQuery({
     queryKey: ["attendance-settings"],
-    queryFn: async () => {
-      const { data } = await supabase.from("attendance_settings").select("*");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/attendance-settings", { credentials: "include" }).then(r => r.json()),
+  });
+
+  const { data: autoSendSettings } = useQuery({
+    queryKey: ["whatsapp-auto-send"],
+    queryFn: () => fetch("/api/whatsapp/auto-send", { credentials: "include" }).then(r => r.json()),
   });
 
   useEffect(() => {
-    if (waConfig && !autoSettingsLoaded.current) {
-      setAutoEnabled(waConfig.wa_auto_send_enabled ?? false);
-      setAutoTime(waConfig.wa_auto_send_time ?? "14:00");
-      setAutoScope(waConfig.wa_auto_send_scope ?? "all");
+    if (autoSendSettings && !autoSettingsLoaded.current) {
+      setAutoEnabled(autoSendSettings.enabled ?? false);
+      setAutoTime(autoSendSettings.time ?? "14:00");
+      setAutoScope(autoSendSettings.scope ?? "all");
       autoSettingsLoaded.current = true;
     }
-  }, [waConfig]);
+  }, [autoSendSettings]);
+
+  const sendNowMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/whatsapp/send-now", {}),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-auto-send"] });
+      toast({ title: `✅ Berhasil dikirim ke ${res.sent_to}! (${res.classes} kelas)` });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Gagal mengirim", description: e.message, variant: "destructive" });
+    },
+  });
 
   const saveAutoSendMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("PATCH", "/api/web-config", {
-        wa_auto_send_enabled: autoEnabled,
-        wa_auto_send_time: autoTime,
-        wa_auto_send_scope: autoScope,
-      });
-    },
+    mutationFn: () => apiRequest("PATCH", "/api/whatsapp/auto-send", {
+      enabled: autoEnabled,
+      time: autoTime,
+      scope: autoScope,
+    }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["web-config"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-auto-send"] });
       toast({ title: "✅ Pengaturan kirim otomatis disimpan!" });
     },
-    onError: (e: Error) => toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => {
+      toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" });
+    },
   });
 
   const getDateSetting = (dateStr: string) => {
@@ -125,121 +137,43 @@ const WhatsAppReport = () => {
 
   const hasSelection = selectedClassIds.length > 0;
 
-  const buildPreviewMessage = (classLabel: string, students: any[], records: any[]): string => {
-    const dateStr = date || todayStr();
-    const formattedDate = format(new Date(dateStr + "T00:00:00"), "EEEE, d MMMM yyyy", { locale: idLocale });
-    const recordMap = new Map<string, string>();
-    records.forEach(r => recordMap.set(r.student_id, r.status));
-
-    const absent = students.filter(s => {
-      const status = recordMap.get(s.id);
-      return !status || status === "alpa";
-    });
-    const izin = students.filter(s => recordMap.get(s.id) === "izin");
-    const sakit = students.filter(s => recordMap.get(s.id) === "sakit");
-    const hadir = students.filter(s => recordMap.get(s.id) === "hadir");
-
-    let msg = `📋 *REKAP ABSENSI HARIAN*\n`;
-    msg += `📅 ${formattedDate}\n`;
-    msg += `🏫 Kelas: *${classLabel}*\n`;
-    msg += `👥 Total Siswa: ${students.length}\n\n`;
-
-    msg += `✅ Hadir: ${hadir.length} siswa\n`;
-    if (izin.length > 0) {
-      msg += `📝 Izin: ${izin.length} siswa\n`;
-      izin.forEach((s, i) => { msg += `   ${i + 1}. ${s.name}\n`; });
-    }
-    if (sakit.length > 0) {
-      msg += `🤒 Sakit: ${sakit.length} siswa\n`;
-      sakit.forEach((s, i) => { msg += `   ${i + 1}. ${s.name}\n`; });
-    }
-    if (absent.length > 0) {
-      msg += `❌ Tidak Hadir/Alpha: ${absent.length} siswa\n`;
-      absent.forEach((s, i) => { msg += `   ${i + 1}. ${s.name}\n`; });
-    }
-
-    msg += `\n_Dikirim otomatis oleh E-Absensi_`;
-    return msg;
-  };
-
-  const [isFetching, setIsFetching] = useState(false);
-
   const handlePreview = async () => {
     if (!hasSelection || !date) {
       toast({ title: "Pilih kelas dan tanggal terlebih dahulu", variant: "destructive" });
       return;
     }
-    setIsFetching(true);
-    try {
-      const { data: students } = await supabase
-        .from("students")
-        .select("id, name, class_id")
-        .in("class_id", selectedClassIds)
-        .order("name");
-
-      const { data: r1 } = await supabase.from("attendance_records").select("*").eq("date", date).in("class_id", selectedClassIds).in("status", ["izin", "sakit"]).eq("validation_status", "approved");
-      const { data: r2 } = await supabase.from("attendance_records").select("*").eq("date", date).in("class_id", selectedClassIds).in("status", ["hadir", "alpa"]);
-      const records = [...(r1 ?? []), ...(r2 ?? [])];
-
-      const allStudents = students ?? [];
-      const classLabel = mode === "single"
-        ? classes.find((c: any) => c.id === classId)?.name || "Kelas"
-        : `Kelas ${gradePrefix}`;
-
-      const recordMap = new Map<string, string>();
-      records.forEach(r => recordMap.set(r.student_id, r.status));
-      const absentCount = allStudents.filter(s => {
-        const st = recordMap.get(s.id);
-        return !st || st === "alpa";
-      }).length;
-
-      const message = buildPreviewMessage(classLabel, allStudents, records);
-      setPreview({ message, classLabel, totalStudents: allStudents.length, absentCount });
-    } catch (e: any) {
-      toast({ title: "Gagal memuat preview", description: e.message, variant: "destructive" });
-    } finally {
-      setIsFetching(false);
+    const params = new URLSearchParams({ class_ids: selectedClassIds.join(","), date });
+    const res = await fetch(`/api/whatsapp/preview?${params}`, { credentials: "include" });
+    const data = await res.json();
+    if (data.error) {
+      toast({ title: "Gagal memuat preview", description: data.error, variant: "destructive" });
+    } else {
+      setPreview(data);
     }
   };
 
-  const sendMutation = useMutation({
-    mutationFn: async () => {
-      if (!waConfig?.wa_token) throw new Error("Token WhatsApp belum dikonfigurasi");
-      const target = waConfig.wa_target_number;
-      if (!target) throw new Error("Nomor/ID grup WhatsApp belum dikonfigurasi");
-      const provider = waConfig.wa_provider || "fonnte";
-      const message = preview?.message || "";
+  const [isFetching, setIsFetching] = useState(false);
+  const wrappedPreview = async () => {
+    setIsFetching(true);
+    try { await handlePreview(); } finally { setIsFetching(false); }
+  };
 
-      if (provider === "fonnte") {
-        const res = await fetch("https://api.fonnte.com/send", {
-          method: "POST",
-          headers: { "Authorization": waConfig.wa_token, "Content-Type": "application/json" },
-          body: JSON.stringify({ target, message }),
+  const sendMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/whatsapp/send", { class_ids: selectedClassIds, date }),
+    onSuccess: (res: any) => {
+      if (res.failed && res.failed > 0) {
+        toast({
+          title: `⚠️ Sebagian berhasil`,
+          description: `${res.sent} berhasil, ${res.failed} gagal dikirim.`,
+          variant: "destructive",
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.reason || err.message || "Gagal mengirim ke Fonnte");
-        }
-        return await res.json();
-      } else if (provider === "woonwa") {
-        const res = await fetch("https://api.woonwa.com/api/messages/send-text", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${waConfig.wa_token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ phone_number: target, message }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || "Gagal mengirim ke Woonwa");
-        }
-        return await res.json();
+      } else {
+        toast({ title: `✅ Berhasil dikirim ke ${res.sent || 1} grup WhatsApp!` });
       }
-    },
-    onSuccess: () => {
-      toast({ title: "✅ Berhasil dikirim ke WhatsApp!" });
       setShowDialog(false);
     },
     onError: (e: Error) => {
-      toast({ title: "Gagal mengirim", description: e.message || "Periksa token dan nomor target", variant: "destructive" });
+      toast({ title: "Gagal mengirim", description: e.message, variant: "destructive" });
     },
   });
 
@@ -289,6 +223,7 @@ const WhatsAppReport = () => {
               type="button"
               onClick={() => { setMode("single"); setGradePrefix(""); setPreview(null); }}
               className={modeClasses("single")}
+              data-testid="mode-single"
             >
               <BookOpen className="h-4 w-4" />
               Satu Kelas
@@ -297,6 +232,7 @@ const WhatsAppReport = () => {
               type="button"
               onClick={() => { setMode("group"); setClassId(""); setPreview(null); }}
               className={modeClasses("group")}
+              data-testid="mode-group"
             >
               <GraduationCap className="h-4 w-4" />
               Satu Jenis Kelas
@@ -307,9 +243,13 @@ const WhatsAppReport = () => {
             <div className="space-y-1.5">
               <Label className="font-semibold text-sm">Pilih Kelas *</Label>
               <Select value={classId} onValueChange={v => { setClassId(v); setPreview(null); }}>
-                <SelectTrigger><SelectValue placeholder="-- Pilih Kelas --" /></SelectTrigger>
+                <SelectTrigger data-testid="select-class">
+                  <SelectValue placeholder="-- Pilih Kelas --" />
+                </SelectTrigger>
                 <SelectContent>
-                  {classes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {classes.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -325,7 +265,9 @@ const WhatsAppReport = () => {
                   </p>
                 ) : (
                   <Select value={gradePrefix} onValueChange={v => { setGradePrefix(v); setPreview(null); }}>
-                    <SelectTrigger><SelectValue placeholder="-- Pilih Jenis Kelas --" /></SelectTrigger>
+                    <SelectTrigger data-testid="select-grade-group">
+                      <SelectValue placeholder="-- Pilih Jenis Kelas --" />
+                    </SelectTrigger>
                     <SelectContent>
                       {gradeGroups.map(([prefix, list]) => (
                         <SelectItem key={prefix} value={prefix}>
@@ -336,6 +278,7 @@ const WhatsAppReport = () => {
                   </Select>
                 )}
               </div>
+
               {gradePrefix && selectedGradeClasses.length > 0 && (
                 <div className="rounded-lg border bg-muted/30 px-3 py-2.5">
                   <p className="text-xs font-semibold text-muted-foreground mb-1.5">Kelas yang akan direkap:</p>
@@ -357,6 +300,7 @@ const WhatsAppReport = () => {
               type="date"
               value={date}
               onChange={e => { setDate(e.target.value); setPreview(null); }}
+              data-testid="input-date"
               className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -365,16 +309,17 @@ const WhatsAppReport = () => {
             <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
               <PowerOff className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Absensi hari <span className="font-medium text-slate-600 dark:text-slate-300">{selectedDateSetting?.day_of_week}</span> belum diaktifkan.
+                Absensi hari <span className="font-medium text-slate-600 dark:text-slate-300">{selectedDateSetting?.day_of_week}</span> belum diaktifkan — rekap WA masih kosong karena belum ada data absensi untuk tanggal ini.
               </p>
             </div>
           )}
 
           <Button
-            onClick={handlePreview}
+            onClick={wrappedPreview}
             disabled={!hasSelection || isFetching}
             variant="outline"
             className="gap-2 border-violet-400 text-violet-700 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950/30"
+            data-testid="button-preview"
           >
             <Eye className="h-4 w-4" />
             {isFetching ? "Memuat..." : "Preview Pesan"}
@@ -391,6 +336,7 @@ const WhatsAppReport = () => {
             <div className="rounded-lg border bg-muted/30 p-4 font-mono text-sm whitespace-pre-wrap leading-relaxed text-foreground">
               {preview.message}
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border bg-card p-4 text-center">
                 <Users className="h-4 w-4 text-blue-500 mx-auto mb-1" />
@@ -403,16 +349,20 @@ const WhatsAppReport = () => {
                 <p className="text-xs text-muted-foreground mt-0.5">Tidak Hadir</p>
               </div>
             </div>
+
             <div className="flex flex-wrap justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setPreview(null)} className="gap-2">
-                <X className="h-4 w-4" />Batal
+              <Button variant="outline" onClick={() => setPreview(null)} className="gap-2" data-testid="button-batal">
+                <X className="h-4 w-4" />
+                Batal
               </Button>
               <Button
                 onClick={() => setShowDialog(true)}
                 disabled={!isConfigured}
                 className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                data-testid="button-send-wa"
               >
-                <Send className="h-4 w-4" />Kirim ke WhatsApp
+                <Send className="h-4 w-4" />
+                Kirim ke WhatsApp
               </Button>
             </div>
           </CardContent>
@@ -426,16 +376,20 @@ const WhatsAppReport = () => {
             Kirim Otomatis
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Pengaturan waktu kirim otomatis rekap ke WhatsApp.
+            Rekap akan otomatis dikirim ke setiap grup WhatsApp kelas sesuai waktu yang ditentukan.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Aktifkan Kirim Otomatis</p>
-              <p className="text-xs text-muted-foreground">Simpan preferensi waktu kirim</p>
+              <p className="text-xs text-muted-foreground">Server akan mengirim rekap setiap hari pada waktu yang ditentukan</p>
             </div>
-            <Switch checked={autoEnabled} onCheckedChange={setAutoEnabled} />
+            <Switch
+              checked={autoEnabled}
+              onCheckedChange={setAutoEnabled}
+              data-testid="switch-auto-send"
+            />
           </div>
 
           {autoEnabled && (
@@ -449,30 +403,57 @@ const WhatsAppReport = () => {
                   type="time"
                   value={autoTime}
                   onChange={e => setAutoTime(e.target.value)}
+                  data-testid="input-auto-time"
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label className="text-sm font-semibold">Kelas yang Dikirim</Label>
                 <Select value={autoScope} onValueChange={setAutoScope}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-auto-scope">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Semua Kelas</SelectItem>
+                    <SelectItem value="all">Semua Kelas (1 pesan gabungan, urut A–Z)</SelectItem>
                     {gradeGroups.map(([prefix]) => (
                       <SelectItem key={prefix} value={prefix}>Kelas {prefix} saja</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Semua kelas digabung menjadi <strong>1 pesan</strong> dan dikirim sekali ke nomor/grup WA global. Kelas diurutkan otomatis dari A ke Z.
+                </p>
               </div>
+
+              {autoSendSettings?.last_sent_date && (
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  Terakhir terkirim: {autoSendSettings.last_sent_date}
+                </div>
+              )}
             </>
           )}
 
           <div className="flex flex-wrap justify-end gap-2 pt-1">
+            {autoEnabled && (
+              <Button
+                onClick={() => sendNowMutation.mutate()}
+                disabled={sendNowMutation.isPending || !isConfigured}
+                size="sm"
+                className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                data-testid="button-send-now"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {sendNowMutation.isPending ? "Mengirim..." : "Kirim Sekarang"}
+              </Button>
+            )}
             <Button
               onClick={() => saveAutoSendMutation.mutate()}
               disabled={saveAutoSendMutation.isPending || !isConfigured}
               size="sm"
               className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="button-save-auto-send"
             >
               {saveAutoSendMutation.isPending ? "Menyimpan..." : "Simpan Pengaturan"}
             </Button>
@@ -501,18 +482,29 @@ const WhatsAppReport = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-0.5">Dikirim ke:</p>
-              <p className="font-semibold text-foreground font-mono">{waConfig?.wa_target_number || "—"}</p>
+              <p className="font-semibold text-foreground font-mono">
+                {(preview?.perClassTargets?.length === 1
+                  ? preview.perClassTargets[0]?.waGroupId
+                  : null) || waConfig?.wa_target_number || "—"}
+              </p>
             </div>
+            {(preview?.perClassTargets?.length ?? 0) > 1 && (
+              <div className="rounded-lg border bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+                ✅ Semua data kelas digabung menjadi <strong>1 pesan</strong> dan dikirim sekaligus.
+              </div>
+            )}
             <p>Provider: <span className="capitalize font-medium">{waConfig?.wa_provider || "fonnte"}</span></p>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowDialog(false)} className="gap-1.5">
-              <X className="h-4 w-4" />Batal
+              <X className="h-4 w-4" />
+              Batal
             </Button>
             <Button
               onClick={() => sendMutation.mutate()}
               disabled={sendMutation.isPending}
               className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+              data-testid="button-confirm-send"
             >
               <Send className="h-4 w-4" />
               {sendMutation.isPending ? "Mengirim..." : "Kirim ke WhatsApp"}

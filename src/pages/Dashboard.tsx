@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, CheckCircle2, Clock, Stethoscope, XCircle, Zap, FileText, CalendarDays, ChevronRight, BarChart3, ClipboardCheck, QrCode } from "lucide-react";
+import { Users, CheckCircle2, Clock, Stethoscope, XCircle, Zap, ClipboardList, FileText, CalendarCog, ChevronRight, BarChart3, ClipboardCheck, CalendarDays, QrCode } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
-
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -25,6 +22,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
 
+  // Cek apakah guru ini terjadwal piket hari ini
   const todayDayNameFull = format(new Date(), "EEEE", { locale: idLocale });
   const dayNameMap: Record<string, string> = {
     senin: "Senin", selasa: "Selasa", rabu: "Rabu", kamis: "Kamis",
@@ -34,13 +32,7 @@ const Dashboard = () => {
 
   const { data: myPiketAssignments = [] } = useQuery({
     queryKey: ["my-piket-dashboard", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("guru_piket_assignments")
-        .select("*")
-        .eq("user_id", user!.id);
-      return data ?? [];
-    },
+    queryFn: () => fetch(`/api/guru-piket?user_id=${user?.id}`, { credentials: "include" }).then(r => r.json()),
     enabled: !!user?.id && !isAdmin,
     staleTime: 5 * 60_000,
   });
@@ -52,53 +44,17 @@ const Dashboard = () => {
 
   const { data: studentCount = 0 } = useQuery({
     queryKey: ["student-count"],
-    queryFn: async () => {
-      const { count } = await supabase.from("students").select("id", { count: "exact", head: true });
-      return count ?? 0;
-    },
+    queryFn: () => fetch("/api/dashboard/student-count", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: todayStats = { hadir: 0, izin: 0, sakit: 0, alpa: 0 } } = useQuery({
     queryKey: ["today-stats", today],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("status")
-        .eq("date", today);
-      const records = data ?? [];
-      return {
-        hadir: records.filter(r => r.status === "hadir").length,
-        izin: records.filter(r => r.status === "izin").length,
-        sakit: records.filter(r => r.status === "sakit").length,
-        alpa: records.filter(r => r.status === "alpa").length,
-      };
-    },
+    queryFn: () => fetch(`/api/dashboard/stats?date=${today}`, { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: yearlyData = [] } = useQuery({
     queryKey: ["yearly-chart", currentYear],
-    queryFn: async () => {
-      const startDate = `${currentYear}-01-01`;
-      const endDate = `${currentYear}-12-31`;
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("status, date")
-        .gte("date", startDate)
-        .lte("date", endDate);
-      const records = data ?? [];
-      const byMonth: Record<number, { Hadir: number; Izin: number; Sakit: number; Alpa: number }> = {};
-      for (let m = 0; m < 12; m++) {
-        byMonth[m] = { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 };
-      }
-      records.forEach(r => {
-        const month = new Date(r.date).getMonth();
-        if (r.status === "hadir") byMonth[month].Hadir++;
-        else if (r.status === "izin") byMonth[month].Izin++;
-        else if (r.status === "sakit") byMonth[month].Sakit++;
-        else if (r.status === "alpa") byMonth[month].Alpa++;
-      });
-      return MONTHS_SHORT.map((name, i) => ({ name, ...byMonth[i] }));
-    },
+    queryFn: () => fetch(`/api/dashboard/yearly?year=${currentYear}`, { credentials: "include" }).then(r => r.json()),
   });
 
   const statusCards = [
@@ -121,6 +77,7 @@ const Dashboard = () => {
     { label: "Laporan Harian",  desc: "Rekap absensi hari ini",     icon: FileText,       color: "bg-warning/10 text-warning",         to: "/admin/reports" },
     { label: "Rekap Bulanan",   desc: "Rekapitulasi per bulan",     icon: CalendarDays,   color: "bg-blue-500/10 text-blue-600",        to: "/admin/rekap" },
   ];
+  // "Scan Absensi" hanya tampil jika guru sedang piket hari ini
   const guruQuickLinks = isGuruOnPiketToday
     ? [...guruQuickLinksBase, { label: "Scan Absensi", desc: "Scan QR & input kehadiran", icon: QrCode, color: "bg-primary/10 text-primary", to: "/admin/history" }]
     : guruQuickLinksBase;
@@ -144,13 +101,15 @@ const Dashboard = () => {
   };
 
   const greeting = getGreeting();
-  const userName = (user as any)?.name || (user as any)?.username || "Admin";
+  const userName  = (user as any)?.name || (user as any)?.username || "Admin";
   const hasChartData = yearlyData.some((d: any) =>
     (d.Hadir || 0) + (d.Izin || 0) + (d.Sakit || 0) + (d.Alpa || 0) > 0
   );
 
   return (
     <div className="space-y-6 animate-fade-in">
+
+      {/* ── Greeting Header ── */}
       <div>
         <h1 className="text-2xl font-extrabold text-foreground leading-tight">
           {greeting},{" "}
@@ -166,6 +125,8 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-8 space-y-4">
+
+          {/* ── Stat cards ── */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Card className="col-span-2 sm:col-span-1 border-none bg-gradient-to-br from-[hsl(220,80%,60%)] to-[hsl(199,89%,48%)] text-white relative overflow-hidden group cursor-default transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:scale-[1.02]">
               <CardContent className="p-4">
@@ -176,6 +137,7 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
             {statusCards.map(({ label, value, icon: Icon, color, bg, hoverBg, ring }) => (
               <Card key={label} className="col-span-1 border-none shadow-sm group cursor-default transition-all duration-300 hover:shadow-md hover:scale-[1.03]">
                 <CardContent className="p-3 flex flex-col items-center text-center gap-1">
@@ -189,12 +151,14 @@ const Dashboard = () => {
             ))}
           </div>
 
+          {/* ── Area Chart ── */}
           <Card className="border-none shadow-sm overflow-hidden">
             <CardContent className="p-0">
               <div className="flex items-center gap-2.5 px-5 pt-5 pb-3">
                 <BarChart3 className="h-5 w-5 text-primary" />
                 <h2 className="text-base font-bold">Grafik Kehadiran Tahunan</h2>
               </div>
+
               {hasChartData ? (
                 <div className="px-2 pb-4">
                   <ResponsiveContainer width="100%" height={300}>
@@ -244,6 +208,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* ── Akses Cepat — tampil untuk Admin & Guru, isinya berbeda ── */}
         <div className="col-span-12 lg:col-span-4">
           <Card className="border-none shadow-sm h-full">
             <CardContent className="p-5">

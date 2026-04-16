@@ -32,12 +32,14 @@ const FaviconSync = () => {
 
     // ── Favicon (statis) ─────────────────────────────────────────────────
     if (raw) {
-      const directHref = convertGDriveLink(raw);
-      setOrCreateLink("icon",            directHref, "image/png");
-      setOrCreateLink("shortcut icon",   directHref, "image/png");
-      setOrCreateLink("apple-touch-icon", directHref);
+      // Gunakan proxy agar gambar selalu bisa dimuat (hindari CORS / redirect GDrive)
+      const proxyHref = `/api/proxy-image?url=${encodeURIComponent(convertGDriveLink(raw))}`;
+      setOrCreateLink("icon",            proxyHref, "image/png");
+      setOrCreateLink("shortcut icon",   proxyHref, "image/png");
+      setOrCreateLink("apple-touch-icon", proxyHref);
+      // Open Graph image
       const ogImg = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
-      if (ogImg) ogImg.content = directHref;
+      if (ogImg) ogImg.content = convertGDriveLink(raw);
     } else {
       setOrCreateLink("icon",            "/favicon.svg", "image/svg+xml");
       setOrCreateLink("shortcut icon",   "/favicon.ico", "image/x-icon");

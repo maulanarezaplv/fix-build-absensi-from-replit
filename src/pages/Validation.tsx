@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +12,6 @@ import { CheckCircle2, XCircle, Users, PowerOff, ShieldCheck, Clock, CheckCheck 
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
 
 const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
@@ -24,30 +24,18 @@ const Validation = () => {
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["validation-records", selectedDate],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("attendance_records")
-        .select("*, students(name, nis, class_id), classes(name)")
-        .eq("date", selectedDate)
-        .in("status", ["izin", "sakit"]);
-      return data ?? [];
-    },
+    queryFn: () =>
+      fetch(`/api/attendance?date=${selectedDate}&status=izin,sakit`, { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: attendanceSettings = [] } = useQuery({
     queryKey: ["attendance-settings"],
-    queryFn: async () => {
-      const { data } = await supabase.from("attendance_settings").select("*");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/attendance-settings", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["all-profiles"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, user_id, name");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/profiles", { credentials: "include" }).then(r => r.json()),
   });
 
   const getSettingForDate = (dateStr: string) => {
@@ -66,14 +54,12 @@ const Validation = () => {
   const validateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
       if (status === "rejected") {
-        const { error } = await supabase.from("attendance_records").delete().eq("id", id);
-        if (error) throw new Error(error.message);
+        return apiRequest("DELETE", `/api/attendance/${id}`);
       } else {
-        const { error } = await supabase.from("attendance_records").update({
+        return apiRequest("PATCH", `/api/attendance/${id}`, {
           validation_status: "approved",
           validated_by: user?.id || null,
-        }).eq("id", id);
-        if (error) throw new Error(error.message);
+        });
       }
     },
     onSuccess: (_, { status }) => {
@@ -87,62 +73,28 @@ const Validation = () => {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const validateAllMutation = useMutation({
-    mutationFn: async () => {
-      const pending = (records as any[]).filter((r: any) => r.validation_status === "pending");
-      if (pending.length === 0) throw new Error("Tidak ada yang perlu divalidasi");
-      await Promise.all(
-        pending.map((r: any) =>
-          supabase.from("attendance_records").update({
-            validation_status: "approved",
-            validated_by: user?.id || null,
-          }).eq("id", r.id)
-        )
-      );
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["validation-records"] });
-      qc.invalidateQueries({ queryKey: ["pending-count"] });
-      toast({ title: "✅ Semua absensi disetujui" });
-    },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
-  const grouped = (records as any[]).reduce<Record<string, { className: string; items: any[] }>>((acc, r: any) => {
+  const grouped = records.reduce<Record<string, { className: string; items: any[] }>>((acc, r: any) => {
     const cName = r.classes?.name || "Tanpa Kelas";
     if (!acc[cName]) acc[cName] = { className: cName, items: [] };
     acc[cName].items.push(r);
     return acc;
   }, {});
 
-  const totalPending  = (records as any[]).filter((r: any) => r.validation_status === "pending").length;
-  const totalApproved = (records as any[]).filter((r: any) => r.validation_status === "approved").length;
-  const totalAll      = (records as any[]).length;
+  const totalPending  = records.filter((r: any) => r.validation_status === "pending").length;
+  const totalApproved = records.filter((r: any) => r.validation_status === "approved").length;
+  const totalAll      = records.length;
 
   return (
     <div className="space-y-6 animate-fade-in">
 
       {/* ── Banner Header ── */}
       <div className="rounded-xl bg-gradient-to-r from-[hsl(38,88%,42%)] to-[hsl(22,90%,52%)] px-6 py-5 shadow-lg shadow-amber-600/20">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 text-white">
-            <ShieldCheck className="h-5 w-5 opacity-90" />
-            <div>
-              <h1 className="text-xl font-bold leading-tight">Validasi Absen</h1>
-              <p className="text-white/70 text-xs mt-0.5">Periksa dan setujui laporan izin &amp; sakit siswa</p>
-            </div>
+        <div className="flex items-center gap-2.5 text-white">
+          <ShieldCheck className="h-5 w-5 opacity-90" />
+          <div>
+            <h1 className="text-xl font-bold leading-tight">Validasi Absen</h1>
+            <p className="text-white/70 text-xs mt-0.5">Periksa dan setujui laporan izin & sakit siswa</p>
           </div>
-          {totalPending > 0 && (
-            <Button
-              size="sm"
-              onClick={() => validateAllMutation.mutate()}
-              disabled={validateAllMutation.isPending}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 border shrink-0"
-            >
-              <CheckCheck className="h-4 w-4 mr-1" />
-              Setujui Semua ({totalPending})
-            </Button>
-          )}
         </div>
       </div>
 
@@ -192,7 +144,7 @@ const Validation = () => {
         </div>
       )}
 
-      {/* ── Data ── */}
+      {/* ── Tabel data ── */}
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Memuat data...</div>
       ) : Object.keys(grouped).length === 0 ? (
@@ -207,17 +159,20 @@ const Validation = () => {
         </Card>
       ) : (
         Object.values(grouped).map(({ className, items }) => {
-          const pendingInGroup = items.filter(r => r.validation_status === "pending").length;
+          const pendingCount = items.filter(r => r.validation_status === "pending").length;
           return (
             <Card key={className} className="border border-border/60 shadow-sm overflow-hidden">
+              {/* Card header */}
               <div className="flex items-center gap-3 px-4 py-3 bg-[hsl(38,88%,42%)]/10 dark:bg-[hsl(38,88%,42%)]/15 border-b border-border/60">
                 <Users className="h-4 w-4 text-[hsl(38,88%,40%)] dark:text-[hsl(38,88%,60%)]" />
-                <span className="font-bold text-sm text-[hsl(38,88%,38%)] dark:text-[hsl(38,88%,62%)]">{className}</span>
+                <span className="font-bold text-sm text-[hsl(38,88%,38%)] dark:text-[hsl(38,88%,62%)]">
+                  {className}
+                </span>
                 <span className="text-xs text-muted-foreground">{items.length} laporan</span>
-                {pendingInGroup > 0 && (
+                {pendingCount > 0 && (
                   <Badge className="ml-auto bg-amber-500 hover:bg-amber-500 text-white border-0 text-xs">
                     <Clock className="h-2.5 w-2.5 mr-1" />
-                    {pendingInGroup} menunggu
+                    {pendingCount} menunggu
                   </Badge>
                 )}
               </div>
@@ -225,7 +180,7 @@ const Validation = () => {
               <CardContent className="p-0">
                 {/* ── Mobile: card list ── */}
                 <div className="md:hidden divide-y divide-border/60">
-                  {items.map((r: any) => (
+                  {items.map((r: any, i: number) => (
                     <div key={r.id} className="px-4 py-3 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -235,32 +190,48 @@ const Validation = () => {
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <Badge className={r.status === "izin"
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-bold uppercase text-[11px]"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold uppercase text-[11px]"}>
+                          <Badge
+                            className={
+                              r.status === "izin"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-bold uppercase text-[11px]"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold uppercase text-[11px]"
+                            }
+                          >
                             {r.status.toUpperCase()}
                           </Badge>
                           {r.validation_status === "pending" && (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-semibold text-[11px]">Menunggu</Badge>
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-semibold text-[11px]">
+                              Menunggu
+                            </Badge>
                           )}
                           {r.validation_status === "approved" && (
-                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-semibold text-[11px]">✓ Disetujui</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-semibold text-[11px]">
+                              ✓ Disetujui
+                            </Badge>
                           )}
                         </div>
                       </div>
                       {r.notes && (
-                        <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-2.5 py-1.5 leading-relaxed">{r.notes}</p>
+                        <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                          {r.notes}
+                        </p>
                       )}
                       {r.validation_status === "pending" && (
                         <div className="flex gap-2 pt-0.5">
-                          <Button size="sm" className="flex-1 h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
                             onClick={() => validateMutation.mutate({ id: r.id, status: "approved" })}
-                            disabled={validateMutation.isPending}>
+                            disabled={validateMutation.isPending}
+                          >
                             <CheckCircle2 className="h-3.5 w-3.5" />Setujui
                           </Button>
-                          <Button size="sm" className="flex-1 h-8 gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs"
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs"
                             onClick={() => validateMutation.mutate({ id: r.id, status: "rejected" })}
-                            disabled={validateMutation.isPending}>
+                            disabled={validateMutation.isPending}
+                          >
                             <XCircle className="h-3.5 w-3.5" />Tolak
                           </Button>
                         </div>
@@ -295,9 +266,13 @@ const Validation = () => {
                           </TableCell>
                           <TableCell className="font-bold uppercase">{r.students?.name}</TableCell>
                           <TableCell>
-                            <Badge className={r.status === "izin"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-bold uppercase"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold uppercase"}>
+                            <Badge
+                              className={
+                                r.status === "izin"
+                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-bold uppercase"
+                                  : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold uppercase"
+                              }
+                            >
                               {r.status.toUpperCase()}
                             </Badge>
                           </TableCell>
@@ -306,28 +281,42 @@ const Validation = () => {
                           </TableCell>
                           <TableCell>
                             {r.validation_status === "pending" && (
-                              <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-semibold">Menunggu</Badge>
+                              <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-semibold">
+                                Menunggu
+                              </Badge>
                             )}
                             {r.validation_status === "approved" && (
-                              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-semibold">Disetujui</Badge>
+                              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-semibold">
+                                Disetujui
+                              </Badge>
                             )}
                             {r.validation_status === "rejected" && (
-                              <Badge className="bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800 font-semibold">Ditolak</Badge>
+                              <Badge className="bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800 font-semibold">
+                                Ditolak
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-1">
                               {r.validation_status === "pending" && (
                                 <div className="flex justify-end gap-1">
-                                  <Button size="sm" className="h-8 px-3 gap-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white text-xs"
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3 gap-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white text-xs"
                                     onClick={() => validateMutation.mutate({ id: r.id, status: "approved" })}
-                                    disabled={validateMutation.isPending}>
-                                    <CheckCircle2 className="h-3.5 w-3.5" />Setujui
+                                    disabled={validateMutation.isPending}
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    Setujui
                                   </Button>
-                                  <Button size="sm" className="h-8 px-3 gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs"
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3 gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs"
                                     onClick={() => validateMutation.mutate({ id: r.id, status: "rejected" })}
-                                    disabled={validateMutation.isPending}>
-                                    <XCircle className="h-3.5 w-3.5" />Tolak
+                                    disabled={validateMutation.isPending}
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    Tolak
                                   </Button>
                                 </div>
                               )}

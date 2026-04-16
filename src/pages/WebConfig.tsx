@@ -1,18 +1,29 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getWebConfig, invalidateWebConfig, apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebConfig } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Type, Globe, Image, Save, Link2, Wand2, X, Plus, Settings2,
-  CalendarDays, Clock, HardDriveUpload, CheckCircle2, Unlink, FolderOpen, AlertCircle, RefreshCw,
-} from "lucide-react";
+import { Type, Globe, Image, Save, Link2, Wand2, X, Plus, Settings2, HardDriveUpload, CheckCircle2, Unlink, FolderOpen, AlertCircle, Clock, CalendarDays, RefreshCw } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { convertGDriveLink } from "@/lib/gdrive";
+
+const convertGDriveLink = (url: string): string => {
+  const patterns = [
+    /\/file\/d\/([a-zA-Z0-9_-]+)/,
+    /id=([a-zA-Z0-9_-]+)/,
+    /\/d\/([a-zA-Z0-9_-]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+    }
+  }
+  return url;
+};
 
 const WebConfig = () => {
   const { toast } = useToast();
@@ -27,6 +38,14 @@ const WebConfig = () => {
     queryKey: ["google-status"],
     queryFn: () => fetch("/api/backup/google-status", { credentials: "include" }).then(r => r.json()),
     retry: false,
+  });
+
+  const { data: webConfig } = useQuery<any>({
+    queryKey: ["web-config"],
+    queryFn: getWebConfig,
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {
@@ -122,9 +141,9 @@ const WebConfig = () => {
   };
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       const validBgs = currentBgList.filter(u => u.trim() !== "");
-      const updates = {
+      return apiRequest("PATCH", "/api/web-config", {
         app_title: currentData.app_title,
         app_subtitle: currentData.app_subtitle,
         school_city: currentData.school_city || null,
@@ -137,8 +156,7 @@ const WebConfig = () => {
         wa_provider: currentData.wa_provider || "fonnte",
         wa_token: currentData.wa_token || null,
         wa_target_number: currentData.wa_target_number || null,
-      };
-      await apiRequest("PATCH", "/api/web-config", updates);
+      });
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["web-config"] });
@@ -151,6 +169,10 @@ const WebConfig = () => {
         app_subtitle: currentData.app_subtitle,
         logo_url: currentData.logo_url || null,
         bg_images: validBgs.length > 0 ? JSON.stringify(validBgs) : null,
+        bg_url_1: validBgs[0] || null,
+        bg_url_2: validBgs[1] || null,
+        bg_url_3: validBgs[2] || null,
+        bg_url_4: validBgs[3] || null,
         wa_provider: currentData.wa_provider || "fonnte",
         wa_token: currentData.wa_token || null,
         wa_target_number: currentData.wa_target_number || null,
@@ -170,7 +192,6 @@ const WebConfig = () => {
       toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" });
     },
     onSettled: () => {
-      invalidateWebConfig();
       qc.invalidateQueries({ queryKey: ["web-config"] });
       qc.invalidateQueries({ queryKey: ["public-web-config"] });
     },
@@ -326,7 +347,9 @@ const WebConfig = () => {
           <div className="space-y-1.5">
             <Label className="font-semibold">Provider API</Label>
             <Select value={currentData.wa_provider} onValueChange={v => updateField("wa_provider", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="fonnte">Fonnte (api.fonnte.com)</SelectItem>
                 <SelectItem value="woonwa">Woonwa (api.woonwa.com)</SelectItem>
@@ -341,7 +364,9 @@ const WebConfig = () => {
               placeholder="Masukkan token dari dashboard Fonnte/Woonwa..."
               type="password"
             />
-            <p className="text-xs text-muted-foreground">Token didapatkan dari dashboard provider WhatsApp API yang digunakan.</p>
+            <p className="text-xs text-muted-foreground">
+              Token didapatkan dari dashboard provider WhatsApp API yang digunakan.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="font-semibold">Nomor / ID Target (Grup WA)</Label>
@@ -350,83 +375,10 @@ const WebConfig = () => {
               onChange={e => updateField("wa_target_number", e.target.value)}
               placeholder="Contoh: 628123456789-1234567890@g.us atau nomor grup"
             />
-            <p className="text-xs text-muted-foreground">Untuk grup WA, gunakan format ID grup. Untuk nomor individu, gunakan format internasional (62xxx).</p>
+            <p className="text-xs text-muted-foreground">
+              Untuk grup WA, gunakan format ID grup. Untuk nomor individu, gunakan format internasional (62xxx).
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-blue-600" />
-            Pengaturan Backup Otomatis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">Konfigurasi jadwal backup otomatis data absensi.</p>
-          <div className="flex items-center justify-between">
-            <Label className="font-semibold">Backup Otomatis</Label>
-            <button
-              type="button"
-              onClick={() => setAutoBackupEnabled(prev => !(prev ?? config?.gdrive_auto_backup_enabled ?? false))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                (autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false)
-                  ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-              }`}
-            >
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                (autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false)
-                  ? "translate-x-6" : "translate-x-1"
-              }`} />
-            </button>
-          </div>
-          {(autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false) && (
-            <div className="space-y-3 pl-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm flex items-center gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                    Jadwal Backup
-                  </Label>
-                  <Select
-                    value={autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly"}
-                    onValueChange={v => setAutoBackupSchedule(v)}
-                  >
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Akhir Bulan</SelectItem>
-                      <SelectItem value="daily">Setiap Hari</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    Jam Backup (WIB)
-                  </Label>
-                  <Input
-                    type="time"
-                    value={autoBackupTime ?? config?.gdrive_auto_backup_time ?? "23:00"}
-                    onChange={e => setAutoBackupTime(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          <Button
-            onClick={() => saveAutoBackupMutation.mutate({
-              enabled: autoBackupEnabled ?? config?.gdrive_auto_backup_enabled ?? false,
-              time: autoBackupTime ?? config?.gdrive_auto_backup_time ?? "23:00",
-              schedule: autoBackupSchedule ?? config?.gdrive_auto_backup_schedule ?? "monthly",
-            })}
-            disabled={saveAutoBackupMutation.isPending}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-          >
-            <Save className="h-3.5 w-3.5" />
-            {saveAutoBackupMutation.isPending ? "Menyimpan..." : "Simpan Pengaturan Backup"}
-          </Button>
         </CardContent>
       </Card>
 
@@ -443,7 +395,7 @@ const WebConfig = () => {
             <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/50 px-4 py-3">
               <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                <strong>Belum dikonfigurasi.</strong> Tambahkan <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">GOOGLE_CLIENT_ID</code> dan <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">GOOGLE_CLIENT_SECRET</code> di environment server untuk mengaktifkan fitur ini.
+                <strong>Belum dikonfigurasi.</strong> Tambahkan <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">GOOGLE_CLIENT_ID</code> dan <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">GOOGLE_CLIENT_SECRET</code> di file <code>.env</code> server untuk mengaktifkan fitur ini.
               </p>
             </div>
           )}
@@ -510,7 +462,7 @@ const WebConfig = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ambil ID dari link folder Drive: drive.google.com/drive/folders/<strong>ID_FOLDER_INI</strong>. Pastikan folder sudah di-share ke akun yang terhubung.
+                  Ambil ID dari link folder Drive: drive.google.com/drive/folders/<strong>ID_FOLDER_INI</strong>. Pastikan folder sudah di-share ke email service account atau akun yang terhubung.
                 </p>
               </div>
 
@@ -640,6 +592,7 @@ const WebConfig = () => {
                   size="icon"
                   onClick={() => removeBg(i)}
                   className="shrink-0 text-muted-foreground hover:text-destructive"
+                  title="Hapus background ini"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -656,7 +609,11 @@ const WebConfig = () => {
               )}
             </div>
           ))}
-          <Button variant="outline" onClick={addBg} className="w-full gap-2 border-dashed">
+          <Button
+            variant="outline"
+            onClick={addBg}
+            className="w-full gap-2 border-dashed"
+          >
             <Plus className="h-4 w-4" />
             Tambah Background
           </Button>

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import { useFullscreen } from "@/hooks/useFullscreen";
@@ -18,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import QRScannerDialog, { type ScanResult } from "@/components/QRScannerDialog";
-import { supabase } from "@/integrations/supabase/client";
 
 type BufferedCheckin = {
   student_id: string;
@@ -96,62 +96,45 @@ const History = () => {
 
   const { data: piketAssignments = [], isLoading: piketLoading } = useQuery({
     queryKey: ["my-piket", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("guru_piket_assignments").select("*").eq("user_id", user!.id);
-      return data ?? [];
-    },
+    queryFn: () => fetch(`/api/guru-piket?user_id=${user?.id}`, { credentials: "include" }).then(r => r.json()),
     enabled: !!user?.id && !isAdmin,
   });
 
-  const isGuruOnPiketToday = isAdmin || (piketAssignments as any[]).some((a: any) => a.day_of_week === todayPiketDay);
+  const isGuruOnPiketToday = isAdmin || piketAssignments.some((a: any) => a.day_of_week === todayPiketDay);
 
   const { data: classes = [] } = useQuery({
     queryKey: ["classes"],
-    queryFn: async () => {
-      const { data } = await supabase.from("classes").select("*").order("name");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/classes", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: students = [] } = useQuery({
     queryKey: ["students-for-class", classId],
-    queryFn: async () => {
-      const { data } = await supabase.from("students").select("*, classes(name)").eq("class_id", classId).order("name");
-      return data ?? [];
-    },
+    queryFn: () => fetch(`/api/students?class_id=${classId}`, { credentials: "include" }).then(r => r.json()),
     enabled: !!classId,
   });
 
   const { data: todayRecords = [] } = useQuery({
     queryKey: ["today-records", classId, dateStr],
-    queryFn: async () => {
-      const { data } = await supabase.from("attendance_records").select("*").eq("class_id", classId).eq("date", dateStr);
-      return data ?? [];
-    },
+    queryFn: () => fetch(`/api/attendance?class_id=${classId}&date=${dateStr}`, { credentials: "include" }).then(r => r.json()),
     enabled: !!classId,
   });
 
   const { data: settings = [] } = useQuery({
     queryKey: ["attendance-settings"],
-    queryFn: async () => {
-      const { data } = await supabase.from("attendance_settings").select("*");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/attendance-settings", { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: holidays = [] } = useQuery({
     queryKey: ["holidays"],
-    queryFn: async () => {
-      const { data } = await supabase.from("holidays").select("*");
-      return data ?? [];
-    },
+    queryFn: () => fetch("/api/holidays", { credentials: "include" }).then(r => r.json()),
   });
 
   const todayDayName = format(new Date(dateStr), "EEEE", { locale: idLocale });
   const dayMap: Record<string, string> = { Senin: "Senin", Selasa: "Selasa", Rabu: "Rabu", Kamis: "Kamis", Jumat: "Jumat", Sabtu: "Sabtu", Minggu: "Minggu" };
   const mappedDay = Object.entries(dayMap).find(([, v]) => todayDayName.toLowerCase().includes(v.toLowerCase()))?.[0];
-  const todaySetting = (settings as any[]).find((s: any) => s.day_of_week === mappedDay);
+  const todaySetting = settings.find((s: any) => s.day_of_week === mappedDay);
 
+  // Cek apakah tanggal yang dipilih masuk dalam daftar hari libur
   const isHoliday = (holidays as any[]).some((h: any) => {
     const start = h.startDate || h.start_date;
     const end = h.endDate || h.end_date;
@@ -206,16 +189,13 @@ const History = () => {
         status: b.status,
         submitted_by: user?.id || null,
         check_in_at: b.scanned_at,
-        validation_status: b.status === "hadir" ? "approved" : "pending",
       }));
-      const { error } = await supabase.from("attendance_records").insert(records);
-      if (error) throw new Error(error.message);
+      return apiRequest("POST", "/api/attendance", { records });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["today-records"] });
       qc.invalidateQueries({ queryKey: ["report-records"] });
       qc.invalidateQueries({ queryKey: ["attendance-rekap"] });
-      qc.invalidateQueries({ queryKey: ["today-stats"] });
       toast({ title: `${checkinBuffer.length} data absensi berhasil dikirim ke Laporan Harian` });
       setCheckinBuffer([]);
       setStatuses({});
@@ -227,9 +207,7 @@ const History = () => {
     mutationFn: async () => {
       if (checkoutBuffer.length === 0) throw new Error("Tidak ada data untuk dikirim");
       await Promise.all(
-        checkoutBuffer.map(b =>
-          supabase.from("attendance_records").update({ check_out_at: b.checkout_time }).eq("id", b.record_id)
-        )
+        checkoutBuffer.map(b => apiRequest("PATCH", `/api/attendance/${b.record_id}`, { check_out_at: b.checkout_time }))
       );
     },
     onSuccess: () => {
@@ -242,6 +220,7 @@ const History = () => {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  // Selama pengecekan piket masih berjalan, jangan tampilkan halaman sama sekali (cegah scan sebelum cek selesai)
   if (!isAdmin && piketLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -280,8 +259,8 @@ const History = () => {
     if (entries.length === 0) return;
 
     const newBuffered: BufferedCheckin[] = entries.map(([studentId, status]) => {
-      const student = (students as any[]).find((s: any) => s.id === studentId);
-      const cls = (classes as any[]).find((c: any) => c.id === classId);
+      const student = students.find((s: any) => s.id === studentId);
+      const cls = classes.find((c: any) => c.id === classId);
       return {
         student_id: studentId,
         class_id: classId,
@@ -322,24 +301,15 @@ const History = () => {
     const trimmedNis = raw.trim();
     const todayDateStr = format(new Date(), "yyyy-MM-dd");
 
-    // Look up student by NIS or ID
-    const { data: studentData } = await supabase
-      .from("students")
-      .select("*, classes(name)")
-      .or(`nis.eq.${trimmedNis},id.eq.${trimmedNis}`)
-      .maybeSingle();
+    // Single API call: returns student + today's attendance together
+    const { student: studentData, attendance: existing } = await fetch(
+      `/api/scan-lookup?q=${encodeURIComponent(trimmedNis)}&date=${todayDateStr}`,
+      { credentials: "include" }
+    ).then(r => r.json());
 
     if (!studentData) {
       return { success: false, message: `Siswa tidak ditemukan` };
     }
-
-    // Look up today's attendance
-    const { data: existing } = await supabase
-      .from("attendance_records")
-      .select("*")
-      .eq("student_id", studentData.id)
-      .eq("date", todayDateStr)
-      .maybeSingle();
 
     if (tab === "checkin") {
       if (existing) {
@@ -355,30 +325,30 @@ const History = () => {
         student_id: studentData.id,
         class_id: studentData.class_id,
         student_name: studentData.name,
-        class_name: (studentData as any).classes?.name || "",
+        class_name: studentData.classes?.name || "",
         status: "hadir",
         scanned_at: new Date().toISOString(),
       }]);
 
-      return { success: true, message: "Hadir ✓ (antrian)", studentName: `${studentData.name} - ${(studentData as any).classes?.name || ""}` };
+      return { success: true, message: "Hadir ✓ (antrian)", studentName: `${studentData.name} - ${studentData.classes?.name || ""}` };
     } else {
       if (!existing) {
         return { success: false, message: "Belum absen masuk!", studentName: studentData.name };
       }
-      if ((existing as any).check_out_at) {
+      if (existing.check_out_at) {
         return { success: false, message: "Sudah scan pulang!", studentName: studentData.name };
       }
 
-      const alreadyInBuffer = checkoutBuffer.some(b => b.record_id === (existing as any).id);
+      const alreadyInBuffer = checkoutBuffer.some(b => b.record_id === existing.id);
       if (alreadyInBuffer) {
         return { success: false, message: "Sudah ada di antrian!", studentName: studentData.name };
       }
 
       setCheckoutBuffer(prev => [...prev, {
-        record_id: (existing as any).id,
+        record_id: existing.id,
         student_id: studentData.id,
         student_name: studentData.name,
-        class_name: (studentData as any).classes?.name || "",
+        class_name: studentData.classes?.name || "",
         checkout_time: new Date().toISOString(),
       }]);
 
@@ -387,8 +357,8 @@ const History = () => {
   };
 
   const bufferedStudentIds = new Set(checkinBuffer.map(b => b.student_id));
-  const recordedStudentIds = new Set((todayRecords as any[]).map((r: any) => r.student_id));
-  const unrecordedStudents = (students as any[]).filter((s: any) => !recordedStudentIds.has(s.id) && !bufferedStudentIds.has(s.id));
+  const recordedStudentIds = new Set(todayRecords.map((r: any) => r.student_id));
+  const unrecordedStudents = students.filter((s: any) => !recordedStudentIds.has(s.id) && !bufferedStudentIds.has(s.id));
   const newCount = Object.values(statuses).filter(Boolean).length;
   const pendingCount = unrecordedStudents.length - newCount;
 
@@ -397,6 +367,7 @@ const History = () => {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {/* Heading */}
       <div className="rounded-xl bg-gradient-to-r from-[hsl(260,75%,50%)] to-[hsl(220,85%,60%)] px-6 py-5 shadow-lg shadow-violet-500/20">
         <div className="flex items-center gap-2.5 text-white">
           <ClipboardList className="h-5 w-5 opacity-90" />
@@ -544,7 +515,7 @@ const History = () => {
               <Select value={classId} onValueChange={setClassId}>
                 <SelectTrigger className="w-full"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
                 <SelectContent>
-                  {(classes as any[]).map((c: any) => (
+                  {classes.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -562,7 +533,7 @@ const History = () => {
                 {" / "}
                 <span className="text-destructive font-bold">{pendingCount} belum</span>
                 {" "}
-                <span className="text-muted-foreground">({(todayRecords as any[]).length} tersimpan)</span>
+                <span className="text-muted-foreground">({todayRecords.length} tersimpan)</span>
               </span>
               {unrecordedStudents.length > 0 && (
                 <Button
@@ -664,7 +635,7 @@ const History = () => {
 
                 {unrecordedStudents.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    {(students as any[]).length === 0 ? "Belum ada siswa di kelas ini" : "Semua siswa sudah diabsen"}
+                    {students.length === 0 ? "Belum ada siswa di kelas ini" : "Semua siswa sudah diabsen"}
                   </div>
                 ) : (
                   unrecordedStudents.map((s: any, i: number) => (
@@ -692,6 +663,7 @@ const History = () => {
                                   : "bg-muted text-muted-foreground hover:bg-muted/80"
                                 } ${!canSubmit ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
+                              {/* Mobile: 1-letter abbreviation. Desktop: full label */}
                               <span className="sm:hidden">{active ? "✕" : opt.label.charAt(0)}</span>
                               <span className="hidden sm:inline">{active ? "✕ " : ""}{opt.label}</span>
                             </button>
@@ -712,7 +684,7 @@ const History = () => {
               </CardContent>
             </Card>
           )}
-          </div>
+          </div>{/* end order-2 lg:order-1 */}
 
           <div className="order-1 lg:order-2 space-y-4">
             <Card className="border-none shadow-md overflow-hidden">
@@ -789,8 +761,8 @@ const History = () => {
                       disabled={!manualName.trim() || !classId || !canSubmit}
                       className="shrink-0 text-white hover:opacity-90 bg-gradient-to-r from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)]"
                       onClick={() => {
-                        const student = (students as any[]).find((s: any) => s.name.toLowerCase().includes(manualName.toLowerCase()));
-                        const cls = (classes as any[]).find((c: any) => c.id === classId);
+                        const student = students.find((s: any) => s.name.toLowerCase().includes(manualName.toLowerCase()));
+                        const cls = classes.find((c: any) => c.id === classId);
                         if (!student) {
                           toast({ title: "Siswa tidak ditemukan", variant: "destructive" });
                           return;
@@ -822,6 +794,7 @@ const History = () => {
         </div>
       )}
 
+      {/* Dialog Prompt Fullscreen sebelum buka kamera */}
       <Dialog open={fullscreenPromptOpen} onOpenChange={setFullscreenPromptOpen}>
         <DialogContent className="w-[88vw] max-w-xs rounded-2xl p-6 text-center">
           <DialogHeader>

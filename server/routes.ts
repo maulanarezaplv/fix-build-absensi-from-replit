@@ -18,54 +18,15 @@ declare module "express-session" {
   }
 }
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-
-const _tokenCache = new Map<string, { userId: string; exp: number }>();
-
-async function verifySupabaseToken(token: string): Promise<string | null> {
-  const cached = _tokenCache.get(token);
-  if (cached && Date.now() < cached.exp) return cached.userId;
-  try {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
-    });
-    if (!r.ok) return null;
-    const u = await r.json();
-    if (!u?.id) return null;
-    _tokenCache.set(token, { userId: u.id, exp: Date.now() + 60_000 });
-    return u.id;
-  } catch {
-    return null;
-  }
+function requireAuth(req: Request, res: Response, next: Function) {
+  if (!req.session.userId) return res.status(401).json({ error: "Unauthorized" });
+  next();
 }
 
-async function requireAuth(req: Request, res: Response, next: Function) {
-  if (req.session.userId) return next();
-  const auth = req.headers.authorization;
-  if (auth?.startsWith("Bearer ")) {
-    const uid = await verifySupabaseToken(auth.slice(7));
-    if (uid) { (req as any).supabaseUserId = uid; return next(); }
-  }
-  return res.status(401).json({ error: "Unauthorized" });
-}
-
-async function requireAdmin(req: Request, res: Response, next: Function) {
-  if (req.session.userId) {
-    if (!req.session.roles?.includes("admin")) return res.status(403).json({ error: "Forbidden: Admin only" });
-    return next();
-  }
-  const auth = req.headers.authorization;
-  if (auth?.startsWith("Bearer ")) {
-    const uid = await verifySupabaseToken(auth.slice(7));
-    if (uid) {
-      const roles = await storage.getUserRoles(uid);
-      if (!roles.includes("admin")) return res.status(403).json({ error: "Forbidden: Admin only" });
-      (req as any).supabaseUserId = uid;
-      return next();
-    }
-  }
-  return res.status(401).json({ error: "Unauthorized" });
+function requireAdmin(req: Request, res: Response, next: Function) {
+  if (!req.session.userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.session.roles?.includes("admin")) return res.status(403).json({ error: "Forbidden: Admin only" });
+  next();
 }
 
 // ---- SSE (Server-Sent Events) for real-time updates ----

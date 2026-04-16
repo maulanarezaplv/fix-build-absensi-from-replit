@@ -27,16 +27,22 @@ const Login = () => {
     refetchOnMount: false,
   });
 
-  const logoUrl = webConfig?.logo_url ? convertGDriveLink(webConfig.logo_url) : null;
+  // Proxy agar gambar logo selalu muat di HP (hindari redirect/CORS Google Drive)
+  const logoUrl = webConfig?.logo_url
+    ? `/api/proxy-image?url=${encodeURIComponent(convertGDriveLink(webConfig.logo_url))}`
+    : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await signIn(username.trim(), password);
     if (error) {
+      const isRateLimit = error.includes("429") || error.toLowerCase().includes("terlalu banyak");
       toast({
         title: "Login Gagal",
-        description: "Username atau password salah.",
+        description: isRateLimit
+          ? "Terlalu banyak percobaan login. Coba lagi dalam 15 menit."
+          : "Username atau password salah.",
         variant: "destructive",
       });
     } else {
@@ -50,8 +56,12 @@ const Login = () => {
 
   return (
     <div className="animate-fade-in">
+      {/* ── Card ── */}
       <div className="rounded-2xl overflow-hidden bg-white border border-slate-200/80 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.22)]" style={{ transform: "translateZ(0)" }}>
+
+        {/* Header */}
         <div className="flex flex-col items-center pt-6 pb-5 px-6 text-center">
+          {/* Logo */}
           <div className="mb-3">
             {logoUrl && !logoError
               ? <img
@@ -71,16 +81,21 @@ const Login = () => {
           </h1>
           <p className="text-slate-600 text-[12px] mt-0.5 tracking-wide">{appSubtitle}</p>
 
+          {/* Login badge */}
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-600 text-[11px] font-semibold tracking-wide">
             <ShieldCheck className="h-3 w-3" />
             Login Admin / Guru
           </div>
         </div>
 
+        {/* Divider */}
         <div className="mx-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
+        {/* Form */}
         <div className="px-6 py-5">
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Username */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-slate-600 tracking-widest uppercase">Username</p>
               <div className="relative">
@@ -95,9 +110,9 @@ const Login = () => {
                   autoComplete="username"
                 />
               </div>
-              <p className="text-[11px] text-slate-400">Default admin: admin / admin123</p>
             </div>
 
+            {/* Password */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-slate-600 tracking-widest uppercase">Password</p>
               <div className="relative">
@@ -121,6 +136,7 @@ const Login = () => {
               </div>
             </div>
 
+            {/* Submit */}
             <Button
               type="submit"
               disabled={loading}
@@ -130,6 +146,7 @@ const Login = () => {
             </Button>
           </form>
 
+          {/* Back link */}
           <div className="text-center mt-4 pb-1">
             <Link
               to="/"
