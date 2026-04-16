@@ -64,6 +64,7 @@ const RekapBulanan = () => {
   const [showExcelDialog, setShowExcelDialog] = useState(false);
   const [dialogSemester, setDialogSemester] = useState("1");
   const [dialogTahunPelajaran, setDialogTahunPelajaran] = useState("");
+  const [isDownloadingExcel, setIsDownloadingExcel] = useState(false);
 
   const autoSemester = (m: number, y: number) => m >= 7 ? "1" : "2";
   const autoTahunPelajaran = (m: number, y: number) => m >= 7 ? `${y} / ${y + 1}` : `${y - 1} / ${y}`;
@@ -334,6 +335,42 @@ const RekapBulanan = () => {
     downloadBlob(blob, filename);
     setShowExcelDialog(false);
     toast({ title: "File Excel berhasil diunduh" });
+  };
+
+  const doExportExcel = async () => {
+    setIsDownloadingExcel(true);
+    try {
+      let url: string;
+      if (classId === "all") {
+        const params = new URLSearchParams({
+          month: String(monthNum + 1), year: String(yearNum),
+          semester: dialogSemester, tahun_pelajaran: dialogTahunPelajaran,
+        });
+        url = `/api/rekap/excel-all?${params}`;
+      } else {
+        const params = new URLSearchParams({
+          class_id: classId, month: String(monthNum + 1), year: String(yearNum),
+          semester: dialogSemester, tahun_pelajaran: dialogTahunPelajaran,
+        });
+        url = `/api/rekap/excel?${params}`;
+      }
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Gagal mengunduh" }));
+        throw new Error(err.error || "Gagal mengunduh");
+      }
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const filenameMatch = disposition.match(/filename="([^"]+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `Presensi_${monthNum + 1}_${yearNum}.xlsx`;
+      const blob = await res.blob();
+      downloadBlob(blob, filename);
+      setShowExcelDialog(false);
+      toast({ title: "File Excel berhasil diunduh" });
+    } catch (e: any) {
+      toast({ title: "Gagal mengunduh Excel", description: e.message, variant: "destructive" });
+    } finally {
+      setIsDownloadingExcel(false);
+    }
   };
 
   const handleExportWord = () => {
@@ -979,8 +1016,14 @@ body { font-family: 'Times New Roman', serif; font-size: 10pt; margin: 0; }
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowExcelDialog(false)}>Batal</Button>
-            <Button onClick={doExportExcelWord} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              📊 Download Excel
+            <Button
+              onClick={doExportExcel}
+              disabled={isDownloadingExcel || !dialogTahunPelajaran.trim()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              data-testid="button-confirm-export-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isDownloadingExcel ? "Mengunduh..." : "Download Excel (.xlsx)"}
             </Button>
           </DialogFooter>
         </DialogContent>
