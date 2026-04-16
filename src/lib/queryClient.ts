@@ -1,6 +1,15 @@
 import { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+async function getSupabaseToken(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -73,15 +82,8 @@ let webConfigPromise: Promise<WebConfig> | null = null;
 
 export async function getWebConfig(): Promise<WebConfig> {
   if (!webConfigPromise) {
-    webConfigPromise = supabase
-      .from("web_config")
-      .select("*")
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (!data) return DEFAULT_WEB_CONFIG;
-        return data as WebConfig;
-      })
+    webConfigPromise = fetch("/api/web-config")
+      .then(r => r.ok ? r.json() : DEFAULT_WEB_CONFIG)
       .catch(() => DEFAULT_WEB_CONFIG);
   }
   return webConfigPromise;
@@ -92,9 +94,13 @@ export function invalidateWebConfig() {
 }
 
 export async function apiRequest(method: string, url: string, body?: unknown) {
+  const token = await getSupabaseToken();
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(url, {
     method,
-    headers: body !== undefined ? { "Content-Type": "application/json" } : {},
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     credentials: "include",
   });

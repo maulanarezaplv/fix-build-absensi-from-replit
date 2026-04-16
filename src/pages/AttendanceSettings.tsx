@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getWebConfig, invalidateWebConfig } from "@/lib/queryClient";
+import { getWebConfig, invalidateWebConfig, apiRequest } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,11 +53,7 @@ const AttendanceSettings = () => {
 
   const saveSchoolStartMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase.from("web_config").select("id").limit(1).single();
-      if (existing) {
-        const { error } = await supabase.from("web_config").update({ school_start_date: schoolStart || null }).eq("id", existing.id);
-        if (error) throw new Error(error.message);
-      }
+      await apiRequest("PATCH", "/api/web-config", { school_start_date: schoolStart || null });
       invalidateWebConfig();
     },
     onSuccess: () => {

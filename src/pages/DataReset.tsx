@@ -114,8 +114,15 @@ const DataReset = () => {
         const { error } = await supabase.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000");
         if (error) throw new Error(error.message);
       } else if (id === "users") {
-        const { error } = await supabase.from("profiles").delete().not("roles", "cs", '["admin"]');
-        if (error) throw new Error(error.message);
+        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+        if (adminIds.length > 0) {
+          const { error } = await supabase.from("profiles").delete().not("id", "in", `(${adminIds.join(",")})`);
+          if (error) throw new Error(error.message);
+        } else {
+          const { error } = await supabase.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          if (error) throw new Error(error.message);
+        }
       } else if (id === "holidays") {
         const { error } = await supabase.from("holidays").delete().neq("id", "00000000-0000-0000-0000-000000000000");
         if (error) throw new Error(error.message);
@@ -123,12 +130,16 @@ const DataReset = () => {
         const { error } = await supabase.from("guru_piket_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
         if (error) throw new Error(error.message);
       } else if (id === "all") {
+        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
         await Promise.all([
           supabase.from("attendance_records").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
           supabase.from("students").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
           supabase.from("holidays").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
           supabase.from("guru_piket_assignments").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
-          supabase.from("profiles").delete().not("roles", "cs", '["admin"]'),
+          adminIds.length > 0
+            ? supabase.from("profiles").delete().not("id", "in", `(${adminIds.join(",")})`)
+            : supabase.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
         ]);
       }
     },

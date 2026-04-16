@@ -12,7 +12,6 @@ import {
 import { SiWhatsapp } from "react-icons/si";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { convertGDriveLink } from "@/lib/gdrive";
 
 const WebConfig = () => {
@@ -139,14 +138,7 @@ const WebConfig = () => {
         wa_token: currentData.wa_token || null,
         wa_target_number: currentData.wa_target_number || null,
       };
-      const { data: existing } = await supabase.from("web_config").select("id").limit(1).single();
-      if (existing) {
-        const { error } = await supabase.from("web_config").update(updates).eq("id", existing.id);
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await supabase.from("web_config").insert(updates);
-        if (error) throw new Error(error.message);
-      }
+      await apiRequest("PATCH", "/api/web-config", updates);
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["web-config"] });

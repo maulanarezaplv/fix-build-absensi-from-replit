@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getWebConfig } from "@/lib/queryClient";
+import { getWebConfig, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -81,15 +81,11 @@ const WhatsAppReport = () => {
 
   const saveAutoSendMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase.from("web_config").select("id").limit(1).single();
-      if (existing) {
-        const { error } = await supabase.from("web_config").update({
-          wa_auto_send_enabled: autoEnabled,
-          wa_auto_send_time: autoTime,
-          wa_auto_send_scope: autoScope,
-        }).eq("id", existing.id);
-        if (error) throw new Error(error.message);
-      }
+      await apiRequest("PATCH", "/api/web-config", {
+        wa_auto_send_enabled: autoEnabled,
+        wa_auto_send_time: autoTime,
+        wa_auto_send_scope: autoScope,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["web-config"] });
