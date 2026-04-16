@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 interface UserData {
   id: string;
@@ -47,14 +48,23 @@ const EditUserDialog = ({
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const updates: Record<string, any> = {
+      const expressUpdates: Record<string, any> = {
         name: editName,
         username: editUsername,
-        roles: [editRole],
+        role: editRole,
       };
-      if (editPassword) updates.password = editPassword;
-      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+      if (editPassword) expressUpdates.password = editPassword;
+      await apiRequest("PATCH", `/api/users/${user.id}`, expressUpdates).catch(() => {});
+
+      const supabaseUpdates: Record<string, any> = { name: editName, username: editUsername };
+      if (editPassword) supabaseUpdates.password = editPassword;
+      const { error } = await supabase.from("profiles").update(supabaseUpdates).eq("id", user.id);
       if (error) throw new Error(error.message);
+
+      if (user.user_id) {
+        await supabase.from("user_roles").delete().eq("user_id", user.user_id).catch(() => {});
+        await supabase.from("user_roles").insert({ user_id: user.user_id, role: editRole }).catch(() => {});
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
@@ -171,19 +181,22 @@ const UserManagement = () => {
   const createSingleMutation = useMutation({
     mutationFn: async () => {
       if (!username || !password || !name) throw new Error("Semua field wajib diisi");
-      const email = `${username.toLowerCase().trim()}@eabsensi.internal`;
+      const uname = username.toLowerCase().trim();
       const { data: savedSession } = await supabase.auth.getSession();
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name, username: username.toLowerCase().trim(), role } } });
-      if (error) throw new Error(error.message);
-      if (!data.user) throw new Error("Gagal membuat pengguna");
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        user_id: data.user.id,
-        username: username.toLowerCase().trim(),
-        name,
-        password,
-        roles: [role],
-      }, { onConflict: "user_id" });
-      if (profileError) throw new Error(profileError.message);
+
+      await apiRequest("POST", "/api/users", { username: uname, password, name, role });
+
+      const email = `${uname}@eabsensi.internal`;
+      const { data } = await supabase.auth.signUp({ email, password, options: { data: { name, username: uname, role } } });
+      if (data.user) {
+        await supabase.from("profiles").upsert({
+          user_id: data.user.id,
+          username: uname,
+          name,
+          password,
+        }, { onConflict: "user_id" });
+        await supabase.from("user_roles").insert({ user_id: data.user.id, role }).catch(() => {});
+      }
       if (savedSession.session) {
         await supabase.auth.setSession({
           access_token: savedSession.session.access_token,
@@ -211,16 +224,16 @@ const UserManagement = () => {
         const uname = n.toLowerCase().replace(/\s+/g, "");
         const email = `${uname}@eabsensi.internal`;
         try {
-          const { data, error } = await supabase.auth.signUp({ email, password: batchPassword, options: { data: { name: n, username: uname, role: batchRole } } });
-          if (error) { errors.push(`${n}: ${error.message}`); continue; }
-          if (data.user) {
+          await apiRequest("POST", "/api/users", { username: uname, password: batchPassword, name: n, role: batchRole });
+          const { data } = await supabase.auth.signUp({ email, password: batchPassword, options: { data: { name: n, username: uname, role: batchRole } } });
+          if (data?.user) {
             await supabase.from("profiles").upsert({
               user_id: data.user.id,
               username: uname,
               name: n,
               password: batchPassword,
-              roles: [batchRole],
             }, { onConflict: "user_id" });
+            await supabase.from("user_roles").insert({ user_id: data.user.id, role: batchRole }).catch(() => {});
           }
         } catch (e: any) {
           errors.push(`${n}: ${e.message}`);
@@ -247,6 +260,7 @@ const UserManagement = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/users/${userId}`).catch(() => {});
       const { error } = await supabase.from("profiles").delete().eq("id", userId);
       if (error) throw new Error(error.message);
     },

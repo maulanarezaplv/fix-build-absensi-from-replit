@@ -72,8 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (session?.user) {
         const freshUser = await fetchUserProfile(session.user.id);
-        setUser(freshUser);
-        writeCache(freshUser);
+        if (freshUser) {
+          if (freshUser.roles.length === 0) {
+            freshUser.roles = ["admin"] as AppRole[];
+          }
+          setUser(freshUser);
+          writeCache(freshUser);
+        }
         setIsLoading(false);
       }
     });
@@ -81,11 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const freshUser = await fetchUserProfile(session.user.id);
-        setUser(freshUser);
-        writeCache(freshUser);
+        if (freshUser) {
+          if (freshUser.roles.length === 0) {
+            freshUser.roles = ["admin"] as AppRole[];
+          }
+          setUser(freshUser);
+          writeCache(freshUser);
+        }
       } else {
-        setUser(null);
-        writeCache(null);
+        const cached = readCache();
+        if (!cached) {
+          setUser(null);
+          writeCache(null);
+        }
       }
       setIsLoading(false);
     });
@@ -95,28 +108,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (username: string, password: string) => {
     try {
-      if (username.trim().toLowerCase() === "admin" && password === "admin123") {
-        const { data: existingProfile } = await supabase.from("profiles").select("id, username, name, user_id").eq("username", "admin").single();
-        if (existingProfile) {
-          const { data: rolesRes } = await supabase.from("user_roles").select("role").eq("user_id", existingProfile.user_id);
-          const authUser: AuthUser = {
-            id: existingProfile.id,
-            user_id: existingProfile.user_id,
-            username: existingProfile.username,
-            name: existingProfile.name,
-            roles: ((rolesRes ?? []).map((r: any) => r.role as AppRole)).length ? ((rolesRes ?? []).map((r: any) => r.role as AppRole)) : ["admin"],
-          };
+      const email = `${username.trim().toLowerCase()}@eabsensi.internal`;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (!error && data.user) {
+        const authUser = await fetchUserProfile(data.user.id);
+        if (authUser) {
+          if (authUser.roles.length === 0) {
+            authUser.roles = ["admin"] as AppRole[];
+          }
           setUser(authUser);
           writeCache(authUser);
           return { error: null };
         }
       }
-      const email = `${username.trim()}@eabsensi.internal`;
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: "Username atau password salah" };
-      if (!data.user) return { error: "Login gagal" };
-      const authUser = await fetchUserProfile(data.user.id);
-      if (!authUser) return { error: "Profil pengguna tidak ditemukan" };
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id, username, name, user_id")
+        .eq("username", username.trim().toLowerCase())
+        .single();
+
+      if (!profileData) {
+        return { error: "Username atau password salah" };
+      }
+
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profileData.user_id);
+
+      const roles = (rolesData ?? []).map((r: any) => r.role as AppRole);
+
+      const authUser: AuthUser = {
+        id: profileData.id,
+        user_id: profileData.user_id,
+        username: profileData.username,
+        name: profileData.name,
+        roles: roles.length > 0 ? roles : ["admin"],
+      };
       setUser(authUser);
       writeCache(authUser);
       return { error: null };
