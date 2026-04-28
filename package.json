@@ -9,6 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start": "NODE_ENV=production node dist/server/index.js",
+    "build:server": "npx tsc -p tsconfig.server.json",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -56,7 +58,6 @@
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
     "date-fns": "^3.6.0",
-    "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
