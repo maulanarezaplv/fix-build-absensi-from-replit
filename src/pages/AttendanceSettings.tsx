@@ -169,18 +169,18 @@ const AttendanceSettings = () => {
 
       <Card className="border-none shadow-lg overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)] text-white pb-4">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Clock className="h-5 w-5" /> Pengaturan Waktu Absensi
               </CardTitle>
               <p className="text-white/80 text-sm mt-1">Konfigurasi jam operasional absensi per hari.</p>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 flex-wrap sm:shrink-0">
               <Button
                 size="sm"
                 variant="secondary"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs font-semibold"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs font-semibold flex-1 sm:flex-none"
                 onClick={() => bulkToggleMutation.mutate(true)}
                 disabled={bulkToggleMutation.isPending}
                 data-testid="button-enable-all-days"
@@ -190,7 +190,7 @@ const AttendanceSettings = () => {
               <Button
                 size="sm"
                 variant="secondary"
-                className="bg-black/20 hover:bg-black/30 text-white border-white/20 text-xs font-semibold"
+                className="bg-black/20 hover:bg-black/30 text-white border-white/20 text-xs font-semibold flex-1 sm:flex-none"
                 onClick={() => bulkToggleMutation.mutate(false)}
                 disabled={bulkToggleMutation.isPending}
                 data-testid="button-disable-all-days"
@@ -228,7 +228,7 @@ const AttendanceSettings = () => {
                   </div>
 
                   {s.enabled && (
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> JAM DATANG
