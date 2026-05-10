@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CalendarOff, Plus, Trash2, CalendarCheck2, CalendarCog } from "lucide-react";
+import { Clock, CalendarOff, Plus, Trash2, CalendarCheck2, CalendarCog, PowerOff, Power } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -61,6 +61,21 @@ const AttendanceSettings = () => {
       qc.invalidateQueries({ queryKey: ["attendance-settings"] });
       toast({ title: "Pengaturan disimpan" });
     },
+  });
+
+  const bulkToggleMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await Promise.all(
+        settings.map((s: any) =>
+          apiRequest("PATCH", `/api/attendance-settings/${s.id}`, { enabled })
+        )
+      );
+    },
+    onSuccess: (_data, enabled) => {
+      qc.invalidateQueries({ queryKey: ["attendance-settings"] });
+      toast({ title: enabled ? "Semua hari diaktifkan" : "Semua hari dinonaktifkan" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const addHolidayMutation = useMutation({
@@ -154,10 +169,36 @@ const AttendanceSettings = () => {
 
       <Card className="border-none shadow-lg overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-[hsl(260,70%,55%)] to-[hsl(199,89%,48%)] text-white pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Clock className="h-5 w-5" /> Pengaturan Waktu Absensi
-          </CardTitle>
-          <p className="text-white/80 text-sm">Konfigurasi jam operasional absensi per hari.</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5" /> Pengaturan Waktu Absensi
+              </CardTitle>
+              <p className="text-white/80 text-sm mt-1">Konfigurasi jam operasional absensi per hari.</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs font-semibold"
+                onClick={() => bulkToggleMutation.mutate(true)}
+                disabled={bulkToggleMutation.isPending}
+                data-testid="button-enable-all-days"
+              >
+                <Power className="h-3.5 w-3.5 mr-1" /> Aktifkan Semua
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="bg-black/20 hover:bg-black/30 text-white border-white/20 text-xs font-semibold"
+                onClick={() => bulkToggleMutation.mutate(false)}
+                disabled={bulkToggleMutation.isPending}
+                data-testid="button-disable-all-days"
+              >
+                <PowerOff className="h-3.5 w-3.5 mr-1" /> Non-aktifkan Semua
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-4">
           <div className="grid gap-3">
