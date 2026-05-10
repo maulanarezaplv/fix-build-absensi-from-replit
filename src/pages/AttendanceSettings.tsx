@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CalendarOff, Plus, Trash2, CalendarCheck2, CalendarCog, PowerOff, Power } from "lucide-react";
+import { Clock, CalendarOff, Plus, Trash2, CalendarCheck2, CalendarCog, PowerOff, Power, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -21,6 +21,7 @@ const AttendanceSettings = () => {
   const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
   const [schoolStart, setSchoolStart] = useState("");
+  const [importYear, setImportYear] = useState(new Date().getFullYear().toString());
 
   const { data: settings = [] } = useQuery({
     queryKey: ["attendance-settings"],
@@ -100,6 +101,15 @@ const AttendanceSettings = () => {
       qc.invalidateQueries({ queryKey: ["holidays"] });
       toast({ title: "Hari libur dihapus" });
     },
+  });
+
+  const importFromWebMutation = useMutation({
+    mutationFn: (year: string) => apiRequest("POST", "/api/holidays/import-from-web", { year: parseInt(year) }),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["holidays"] });
+      toast({ title: `Import berhasil`, description: `${data.imported} hari libur tahun ${importYear} berhasil diimport dari tanggalans.com` });
+    },
+    onError: (e: Error) => toast({ title: "Gagal import", description: e.message, variant: "destructive" }),
   });
 
   const weekendDays = ["Sabtu", "Minggu"];
@@ -290,14 +300,41 @@ const AttendanceSettings = () => {
 
       <Card className="border-none shadow-lg overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-destructive to-[hsl(25,95%,53%)] text-white pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CalendarOff className="h-5 w-5" /> Daftar Hari Libur
-          </CardTitle>
-          <p className="text-white/80 text-sm">Siswa tidak bisa absen pada tanggal yang ditentukan.</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CalendarOff className="h-5 w-5" /> Daftar Hari Libur
+              </CardTitle>
+              <p className="text-white/80 text-sm mt-1">Siswa tidak bisa absen pada tanggal yang ditentukan.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap sm:shrink-0">
+              <select
+                value={importYear}
+                onChange={(e) => setImportYear(e.target.value)}
+                className="h-8 rounded-md bg-white/20 border border-white/30 text-white text-xs font-semibold px-2 focus:outline-none"
+                data-testid="select-import-year"
+              >
+                {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 1 + i).map(y => (
+                  <option key={y} value={y} className="text-foreground bg-background">{y}</option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs font-semibold"
+                onClick={() => importFromWebMutation.mutate(importYear)}
+                disabled={importFromWebMutation.isPending}
+                data-testid="button-import-holidays"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                {importFromWebMutation.isPending ? "Mengambil data..." : "Import Otomatis"}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-4 space-y-4">
           <div className="rounded-xl border bg-muted/20 p-4">
-            <p className="text-xs font-bold text-muted-foreground uppercase mb-3">Tambah Hari Libur</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase mb-3">Tambah Hari Libur Manual</p>
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1.5fr] gap-3">
               <div>
                 <Label className="text-[10px] text-muted-foreground uppercase font-semibold">Tanggal Mulai</Label>

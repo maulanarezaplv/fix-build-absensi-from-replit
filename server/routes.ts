@@ -493,6 +493,60 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
     }
   });
 
+  app.post("/api/holidays/import-from-web", requireAuth, async (req, res) => {
+    try {
+      const year = parseInt(req.body.year);
+      if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: "Tahun tidak valid" });
+
+      const MONTHS: Record<string, string> = {
+        januari:"01", februari:"02", maret:"03", april:"04", mei:"05", juni:"06",
+        juli:"07", agustus:"08", september:"09", oktober:"10", november:"11", desember:"12"
+      };
+
+      const apiUrl = `https://tanggalans.com/wp-json/wp/v2/pages?slug=hari-libur-nasional-${year}&_fields=content`;
+      const resp = await fetch(apiUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (!resp.ok) return res.status(502).json({ error: "Gagal mengambil data dari tanggalans.com" });
+
+      const pages: any[] = await resp.json();
+      if (!pages.length) return res.status(404).json({ error: `Data hari libur ${year} tidak ditemukan` });
+
+      const html: string = pages[0].content?.rendered ?? "";
+      const decode = (s: string) => s.replace(/&#8217;/g,"'").replace(/&#8211;/g,"-").replace(/&amp;/g,"&").replace(/&nbsp;/g," ").replace(/<[^>]+>/g,"").trim();
+
+      const rowRe = /<tr>([\s\S]*?)<\/tr>/g;
+
+      const imported: string[] = [];
+      let match: RegExpExecArray | null;
+      while ((match = rowRe.exec(html)) !== null) {
+        const cells: string[] = [];
+        let cm: RegExpExecArray | null;
+        const cellSrc = match[1];
+        const tmpRe = /<td[^>]*>([\s\S]*?)<\/td>/g;
+        while ((cm = tmpRe.exec(cellSrc)) !== null) cells.push(decode(cm[1]));
+        if (cells.length < 3) continue;
+
+        const dateStr = cells[0].replace(/\*/g, "").trim();
+        const nameStr = cells[2].trim();
+
+        const parts = dateStr.split(/\s+/);
+        if (parts.length !== 2) continue;
+        const day = parts[0].padStart(2, "0");
+        const monthKey = parts[1].toLowerCase();
+        const month = MONTHS[monthKey];
+        if (!month || isNaN(parseInt(day))) continue;
+
+        const isoDate = `${year}-${month}-${day}`;
+        await storage.createHoliday({ start_date: isoDate, end_date: isoDate, description: nameStr });
+        imported.push(isoDate);
+      }
+
+      _del("holidays");
+      res.json({ imported: imported.length, dates: imported });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ---- Guru Piket ----
   app.get("/api/guru-piket", requireAuth, async (req, res) => {
     try {
