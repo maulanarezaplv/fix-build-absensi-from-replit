@@ -406,34 +406,39 @@ const AttendanceSettings = () => {
           )}
         </CardContent>
       </Card>
-    </div>
 
-    <AlertDialog open={bulkConfirm !== null} onOpenChange={(open) => !open && setBulkConfirm(null)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {bulkConfirm ? "Aktifkan Semua Hari?" : "Non-aktifkan Semua Hari?"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {bulkConfirm
-              ? "Semua hari (Senin–Minggu) akan diaktifkan sekaligus. Lanjutkan?"
-              : "Semua hari (Senin–Minggu) akan dinonaktifkan sekaligus. Siswa tidak bisa absen di hari manapun. Lanjutkan?"}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setBulkConfirm(null)}>Batal</AlertDialogCancel>
-          <AlertDialogAction
-            className={bulkConfirm ? "bg-emerald-600 hover:bg-emerald-700" : "bg-destructive hover:bg-destructive/90"}
-            onClick={() => {
-              bulkToggleMutation.mutate(bulkConfirm!);
-              setBulkConfirm(null);
-            }}
-          >
-            {bulkConfirm ? <><Power className="h-4 w-4 mr-1.5" /> Ya, Aktifkan Semua</> : <><PowerOff className="h-4 w-4 mr-1.5" /> Ya, Non-aktifkan Semua</>}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog
+        open={bulkConfirm !== null}
+        onOpenChange={(v) => { if (!v) setBulkConfirm(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkConfirm ? "Aktifkan Semua Hari?" : "Non-aktifkan Semua Hari?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkConfirm
+                ? "Semua hari (Senin–Minggu) akan diaktifkan sekaligus. Lanjutkan?"
+                : "Semua hari (Senin–Minggu) akan dinonaktifkan sekaligus. Siswa tidak bisa absen di hari manapun. Lanjutkan?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBulkConfirm(null)}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className={bulkConfirm ? "bg-emerald-600 hover:bg-emerald-700" : "bg-destructive hover:bg-destructive/90"}
+              onClick={() => {
+                bulkToggleMutation.mutate(bulkConfirm!);
+                setBulkConfirm(null);
+              }}
+            >
+              {bulkConfirm
+                ? <><Power className="h-4 w-4 mr-1.5" /> Ya, Aktifkan Semua</>
+                : <><PowerOff className="h-4 w-4 mr-1.5" /> Ya, Non-aktifkan Semua</>}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
 
