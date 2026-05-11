@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Clock, CalendarOff, Plus, Trash2, CalendarCheck2, CalendarCog, PowerOff, Power, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -22,6 +27,7 @@ const AttendanceSettings = () => {
   const [description, setDescription] = useState("");
   const [schoolStart, setSchoolStart] = useState("");
   const [importYear, setImportYear] = useState(new Date().getFullYear().toString());
+  const [bulkConfirm, setBulkConfirm] = useState<null | boolean>(null);
 
   const { data: settings = [] } = useQuery({
     queryKey: ["attendance-settings"],
@@ -191,7 +197,7 @@ const AttendanceSettings = () => {
                 size="sm"
                 variant="secondary"
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs font-semibold flex-1 sm:flex-none"
-                onClick={() => bulkToggleMutation.mutate(true)}
+                onClick={() => setBulkConfirm(true)}
                 disabled={bulkToggleMutation.isPending}
                 data-testid="button-enable-all-days"
               >
@@ -201,7 +207,7 @@ const AttendanceSettings = () => {
                 size="sm"
                 variant="secondary"
                 className="bg-black/20 hover:bg-black/30 text-white border-white/20 text-xs font-semibold flex-1 sm:flex-none"
-                onClick={() => bulkToggleMutation.mutate(false)}
+                onClick={() => setBulkConfirm(false)}
                 disabled={bulkToggleMutation.isPending}
                 data-testid="button-disable-all-days"
               >
@@ -389,6 +395,33 @@ const AttendanceSettings = () => {
         </CardContent>
       </Card>
     </div>
+
+    <AlertDialog open={bulkConfirm !== null} onOpenChange={(open) => { if (!open) setBulkConfirm(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {bulkConfirm ? "Aktifkan Semua Hari?" : "Non-aktifkan Semua Hari?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {bulkConfirm
+              ? "Semua hari (Senin–Minggu) akan diaktifkan sekaligus. Lanjutkan?"
+              : "Semua hari (Senin–Minggu) akan dinonaktifkan sekaligus. Siswa tidak bisa absen di hari manapun. Lanjutkan?"}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setBulkConfirm(null)}>Batal</AlertDialogCancel>
+          <AlertDialogAction
+            className={bulkConfirm ? "bg-emerald-600 hover:bg-emerald-700" : "bg-destructive hover:bg-destructive/90"}
+            onClick={() => {
+              bulkToggleMutation.mutate(bulkConfirm!);
+              setBulkConfirm(null);
+            }}
+          >
+            {bulkConfirm ? <><Power className="h-4 w-4 mr-1.5" /> Ya, Aktifkan Semua</> : <><PowerOff className="h-4 w-4 mr-1.5" /> Ya, Non-aktifkan Semua</>}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 
