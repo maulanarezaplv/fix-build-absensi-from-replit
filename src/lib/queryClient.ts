@@ -41,6 +41,10 @@ type WebConfig = {
 
 let webConfigPromise: Promise<WebConfig> | null = null;
 
+export function resetWebConfigCache() {
+  webConfigPromise = null;
+}
+
 export async function getWebConfig() {
   if (!webConfigPromise) {
     webConfigPromise = fetch("/api/web-config", { credentials: "include" })

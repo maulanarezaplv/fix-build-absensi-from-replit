@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, getWebConfig } from "@/lib/queryClient";
+import { apiRequest, getWebConfig, resetWebConfigCache } from "@/lib/queryClient";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,9 +42,9 @@ const AttendanceSettings = () => {
   const { data: webConfig } = useQuery<any>({
     queryKey: ["web-config"],
     queryFn: getWebConfig,
-    staleTime: 30 * 60_000,
+    staleTime: 0,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
 
   useEffect(() => {
@@ -54,6 +54,7 @@ const AttendanceSettings = () => {
   const saveSchoolStartMutation = useMutation({
     mutationFn: () => apiRequest("PATCH", "/api/web-config", { school_start_date: schoolStart || null }),
     onSuccess: () => {
+      resetWebConfigCache();
       qc.setQueryData(["web-config"], (old: any) => ({ ...old, school_start_date: schoolStart || null }));
       qc.invalidateQueries({ queryKey: ["web-config"] });
       toast({ title: "Tanggal mulai sekolah disimpan" });
