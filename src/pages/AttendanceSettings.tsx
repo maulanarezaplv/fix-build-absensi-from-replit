@@ -408,7 +408,7 @@ const AttendanceSettings = () => {
       </Card>
     </div>
 
-    <AlertDialog open={bulkConfirm !== null} onOpenChange={(open) => { if (!open) setBulkConfirm(null); }}>
+    <AlertDialog open={bulkConfirm !== null} onOpenChange={(open) => !open && setBulkConfirm(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
