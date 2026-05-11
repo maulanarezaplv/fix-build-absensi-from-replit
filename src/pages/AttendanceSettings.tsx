@@ -251,7 +251,13 @@ const AttendanceSettings = () => {
                       <span className="text-xs text-muted-foreground">{s.enabled ? "Aktif" : "Nonaktif"}</span>
                       <Switch
                         checked={s.enabled}
-                        onCheckedChange={(v) => updateMutation.mutate({ id: s.id, field: "enabled", value: v })}
+                        onCheckedChange={(v) => {
+                          if (v && !schoolStart) {
+                            toast({ title: "Tanggal mulai sekolah belum diatur", description: "Atur terlebih dahulu Tanggal Mulai Tahun Ajaran sebelum mengaktifkan hari.", variant: "destructive" });
+                            return;
+                          }
+                          updateMutation.mutate({ id: s.id, field: "enabled", value: v });
+                        }}
                         data-testid={`switch-day-${s.day_of_week}`}
                       />
                     </div>
