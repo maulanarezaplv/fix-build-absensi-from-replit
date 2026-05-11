@@ -197,7 +197,13 @@ const AttendanceSettings = () => {
                 size="sm"
                 variant="secondary"
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs font-semibold flex-1 sm:flex-none"
-                onClick={() => setBulkConfirm(true)}
+                onClick={() => {
+                  if (!webConfig?.school_start_date) {
+                    toast({ title: "Tanggal Mulai Sekolah belum diatur", description: "Isi dan simpan Tanggal Mulai Tahun Ajaran terlebih dahulu sebelum mengaktifkan hari.", variant: "destructive" });
+                    return;
+                  }
+                  setBulkConfirm(true);
+                }}
                 disabled={bulkToggleMutation.isPending}
                 data-testid="button-enable-all-days"
               >
@@ -207,7 +213,13 @@ const AttendanceSettings = () => {
                 size="sm"
                 variant="secondary"
                 className="bg-black/20 hover:bg-black/30 text-white border-white/20 text-xs font-semibold flex-1 sm:flex-none"
-                onClick={() => setBulkConfirm(false)}
+                onClick={() => {
+                  if (!webConfig?.school_start_date) {
+                    toast({ title: "Tanggal Mulai Sekolah belum diatur", description: "Isi dan simpan Tanggal Mulai Tahun Ajaran terlebih dahulu sebelum mengubah pengaturan hari.", variant: "destructive" });
+                    return;
+                  }
+                  setBulkConfirm(false);
+                }}
                 disabled={bulkToggleMutation.isPending}
                 data-testid="button-disable-all-days"
               >
