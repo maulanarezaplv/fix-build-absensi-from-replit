@@ -54,6 +54,7 @@ const AttendanceSettings = () => {
   const saveSchoolStartMutation = useMutation({
     mutationFn: () => apiRequest("PATCH", "/api/web-config", { school_start_date: schoolStart || null }),
     onSuccess: () => {
+      qc.setQueryData(["web-config"], (old: any) => ({ ...old, school_start_date: schoolStart || null }));
       qc.invalidateQueries({ queryKey: ["web-config"] });
       toast({ title: "Tanggal mulai sekolah disimpan" });
     },
