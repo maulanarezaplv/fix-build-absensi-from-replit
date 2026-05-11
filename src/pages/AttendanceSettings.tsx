@@ -158,14 +158,14 @@ const AttendanceSettings = () => {
                 className="h-9 max-w-xs"
                 data-testid="input-school-start-date"
               />
-              {webConfig?.school_start_date && (
+              {schoolStart && (
                 <p className="text-xs text-muted-foreground mt-1.5">
                   Saat ini: <span className="font-semibold text-foreground">
-                    {format(new Date(webConfig.school_start_date + "T00:00:00"), "dd MMMM yyyy")}
+                    {format(new Date(schoolStart + "T00:00:00"), "dd MMMM yyyy")}
                   </span>
                 </p>
               )}
-              {!webConfig?.school_start_date && (
+              {!schoolStart && (
                 <p className="text-xs text-amber-600 mt-1.5">
                   ⚠ Belum diatur — semua hari aktif di rekap akan dihitung alpa jika tidak ada absensi.
                 </p>
