@@ -15,8 +15,6 @@ import WebConfig          from "@/pages/WebConfig";
 import RekapBulanan       from "@/pages/RekapBulanan";
 import WhatsAppReport     from "@/pages/WhatsAppReport";
 import DataReset          from "@/pages/DataReset";
-import Tutorial           from "@/pages/Tutorial";
-
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
@@ -35,7 +33,6 @@ const AdminRoutes = () => (
         <Route path="config" element={<WebConfig />} />
         <Route path="whatsapp-report" element={<WhatsAppReport />} />
         <Route path="reset" element={<DataReset />} />
-        <Route path="tutorial" element={<Tutorial />} />
       </Route>
     </Route>
   </Routes>

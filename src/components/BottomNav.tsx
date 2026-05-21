@@ -27,7 +27,6 @@ const shortLabel: Record<string, string> = {
   "Konfigurasi WebApps": "Konfigurasi",
   "Kirim Laporan WA":    "WhatsApp",
   "Kelola & Reset Data": "Reset",
-  "Tutorial & Panduan":  "Tutorial",
 };
 
 const BottomNav = memo(() => {

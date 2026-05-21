@@ -28,13 +28,6 @@ type WebConfig = {
   wa_auto_send_time: string;
   wa_auto_send_scope: string | null;
   wa_auto_sent_date: string | null;
-  google_refresh_token: string | null;
-  google_connected_email: string | null;
-  google_drive_folder_id: string | null;
-  gdrive_auto_backup_enabled: boolean;
-  gdrive_auto_backup_time: string;
-  gdrive_auto_backup_schedule: string;
-  gdrive_auto_backed_up_date: string | null;
   school_city: string | null;
   updated_at: string | null;
 };
@@ -70,13 +63,6 @@ export async function getWebConfig() {
         wa_auto_send_time: "14:00",
         wa_auto_send_scope: "all",
         wa_auto_sent_date: null,
-        google_refresh_token: null,
-        google_connected_email: null,
-        google_drive_folder_id: null,
-        gdrive_auto_backup_enabled: false,
-        gdrive_auto_backup_time: "23:00",
-        gdrive_auto_backup_schedule: "monthly",
-        gdrive_auto_backed_up_date: null,
         school_city: null,
         updated_at: null,
       }));

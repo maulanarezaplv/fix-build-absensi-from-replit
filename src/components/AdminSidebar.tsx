@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, School, ClipboardCheck,
   Calendar, LogOut, GraduationCap, UserCog, Globe,
   FileText, CalendarDays, MessageCircle, X, DatabaseZap,
-  Clock, UserCheck, QrCode, BookOpen
+  Clock, UserCheck, QrCode
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,6 @@ export const allMenuItems = [
   { to: "/admin/users",           icon: UserCog,        label: "Manajemen Pengguna",  adminOnly: true },
   { to: "/admin/config",          icon: Globe,          label: "Konfigurasi WebApps", adminOnly: true },
   { to: "/admin/reset",           icon: DatabaseZap,    label: "Kelola & Reset Data", adminOnly: true },
-  { to: "/admin/tutorial",        icon: BookOpen,       label: "Tutorial & Panduan",  adminOnly: true },
 ];
 
 export const useSidebarCollapse = () => {

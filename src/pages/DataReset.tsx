@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   DatabaseZap, ClipboardList, Users, BookUser, CalendarOff,
-  CalendarCheck, Trash2, TriangleAlert, CheckCircle2, ShieldOff, HardDriveUpload,
+  CalendarCheck, Trash2, TriangleAlert, CheckCircle2, ShieldOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -93,16 +93,7 @@ const DataReset = () => {
   const [pendingAll, setPendingAll] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
-  const [backupYear, setBackupYear] = useState(String(new Date().getFullYear()));
   const [doneId, setDoneId] = useState<string | null>(null);
-
-  const backupAllMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/backup/drive/all-data", { year: backupYear }),
-    onSuccess: (data: any) => {
-      toast({ title: "✅ Backup berhasil!", description: `${data.filename} (${data.totalRecords} record) tersimpan di Google Drive.` });
-    },
-    onError: (e: Error) => toast({ title: "Backup gagal", description: e.message || "Pastikan Google Drive sudah terhubung di Konfigurasi", variant: "destructive" }),
-  });
 
   const resetMutation = useMutation({
     mutationFn: ({ endpoint, year }: { endpoint: string; year?: string }) => {
@@ -162,48 +153,6 @@ const DataReset = () => {
           </div>
         </div>
       </div>
-
-      {/* ── Backup ke Google Drive ── */}
-      <Card className="border-blue-200 dark:border-blue-800/50 bg-blue-50/30 dark:bg-blue-950/10">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
-              <HardDriveUpload className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-bold text-sm">Backup Semua Data ke Google Drive</p>
-              <p className="text-xs text-muted-foreground">Simpan seluruh data absensi ke Drive sebelum melakukan reset</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Label className="text-xs text-muted-foreground whitespace-nowrap">Tahun:</Label>
-            <Input
-              data-testid="input-backup-year"
-              type="number"
-              value={backupYear}
-              onChange={e => setBackupYear(e.target.value)}
-              className="h-7 w-24 text-xs"
-              min={2020}
-              max={2099}
-            />
-            <Button
-              data-testid="button-backup-all-drive"
-              size="sm"
-              onClick={() => backupAllMutation.mutate()}
-              disabled={backupAllMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-            >
-              <HardDriveUpload className="h-3.5 w-3.5" />
-              {backupAllMutation.isPending ? "Membackup..." : "Backup ke Google Drive"}
-            </Button>
-            {backupAllMutation.isSuccess && (
-              <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Berhasil!
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* ── Warning notice ── */}
       <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/50 px-4 py-3">

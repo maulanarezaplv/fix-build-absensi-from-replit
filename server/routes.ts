@@ -1,7 +1,6 @@
 import type { Express, Request, Response, RequestHandler } from "express";
 import { storage } from "./storage";
 import { buildWAPreview, sendWAMessage, getClassPrefix } from "./waHelper";
-import { getAuthUrl, exchangeCodeForToken, uploadPdfToDrive, isGoogleConfigured } from "./googleDrive";
 import { generateMonthlyRecapExcel, generateAllClassesExcel } from "./excelGenerator";
 
 const _cache = new Map<string, { data: any; exp: number }>();
@@ -820,120 +819,6 @@ export function registerRoutes(app: Express, loginLimiter?: RequestHandler) {
     try {
       await storage.resetAllData();
       res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // ---- Google Drive OAuth & Backup (admin only) ----
-  app.get("/api/backup/google-status", requireAdmin, async (_req, res) => {
-    try {
-      const configured = isGoogleConfigured();
-      const config = await storage.getWebConfig();
-      res.json({
-        configured,
-        connected: !!(config?.google_refresh_token),
-        email: config?.google_connected_email || null,
-        folderId: config?.google_drive_folder_id || null,
-      });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.get("/api/auth/google", requireAdmin, (req, res) => {
-    const proto = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.headers["x-forwarded-host"] || req.get("host");
-    const base = `${proto}://${host}`;
-    const url = getAuthUrl(base);
-    if (!url) return res.status(400).json({ error: "GOOGLE_CLIENT_ID atau GOOGLE_CLIENT_SECRET belum dikonfigurasi di .env" });
-    res.redirect(url);
-  });
-
-  app.get("/api/auth/google/callback", async (req, res) => {
-    const code = req.query.code as string;
-    if (!code) return res.redirect("/admin/config?google=error");
-    try {
-      const proto = req.headers["x-forwarded-proto"] || req.protocol;
-      const host = req.headers["x-forwarded-host"] || req.get("host");
-      const base = `${proto}://${host}`;
-      const { email, refreshToken } = await exchangeCodeForToken(code, base);
-      const config = await storage.getWebConfig();
-      if (config) {
-        await storage.updateWebConfig(config.id, {
-          google_refresh_token: refreshToken,
-          google_connected_email: email,
-        });
-      }
-      res.redirect("/admin/config?google=success");
-    } catch (e: any) {
-      console.error("Google OAuth error:", e.message);
-      res.redirect("/admin/config?google=error");
-    }
-  });
-
-  app.delete("/api/auth/google/disconnect", requireAdmin, async (_req, res) => {
-    try {
-      const config = await storage.getWebConfig();
-      if (config) {
-        await storage.updateWebConfig(config.id, {
-          google_refresh_token: null,
-          google_connected_email: null,
-        });
-      }
-      res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.patch("/api/config/google-folder", requireAdmin, async (req, res) => {
-    try {
-      const { folderId } = req.body;
-      const config = await storage.getWebConfig();
-      if (!config) return res.status(404).json({ error: "Config not found" });
-      await storage.updateWebConfig(config.id, { google_drive_folder_id: folderId || null });
-      res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.patch("/api/config/gdrive-auto-backup", requireAdmin, async (req, res) => {
-    try {
-      const { enabled, time, schedule } = req.body;
-      const config = await storage.getWebConfig();
-      if (!config) return res.status(404).json({ error: "Config not found" });
-      await storage.updateWebConfig(config.id, {
-        gdrive_auto_backup_enabled: !!enabled,
-        gdrive_auto_backup_time: time || "23:00",
-        gdrive_auto_backup_schedule: schedule || "monthly",
-      });
-      res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.post("/api/backup/drive", requireAdmin, async (req, res) => {
-    try {
-      const { pdfBase64, filename, folderId } = req.body;
-      if (!pdfBase64 || !filename) return res.status(400).json({ error: "pdfBase64 dan filename wajib diisi" });
-      const result = await uploadPdfToDrive(pdfBase64, filename, folderId);
-      res.json(result);
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.post("/api/backup/drive/all-data", requireAdmin, async (req, res) => {
-    try {
-      const { year } = req.body;
-      const allClasses = await storage.getClasses();
-      const allStudents = await storage.getStudents();
-      const allAttendance = await storage.getAllAttendanceRecords(year ? Number(year) : undefined);
-      const payload = {
-        exported_at: new Date().toISOString(),
-        year: year || "semua",
-        classes: allClasses,
-        students: allStudents,
-        attendance_records: allAttendance,
-      };
-      const jsonStr = JSON.stringify(payload, null, 2);
-      const jsonBase64 = Buffer.from(jsonStr).toString("base64");
-      const suffix = year ? `_${year}` : "";
-      const filename = `backup_absensi${suffix}_${new Date().toISOString().slice(0, 10)}.json`;
-      const cfg = await storage.getWebConfig();
-      const result = await uploadPdfToDrive(jsonBase64, filename, cfg?.google_drive_folder_id);
-      res.json({ ...result, filename, totalRecords: allAttendance.length });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Download, ChevronDown, PowerOff, HardDriveUpload, FileSpreadsheet } from "lucide-react";
+import { Search, Download, ChevronDown, PowerOff, FileSpreadsheet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -645,36 +645,6 @@ const RekapBulanan = () => {
     toast({ title: "File PDF berhasil diunduh" });
   };
 
-  const [isBackingUp, setIsBackingUp] = useState(false);
-
-  const handleBackupToDrive = async () => {
-    if (students.length === 0) {
-      toast({ title: "Tidak ada data untuk dibackup", variant: "destructive" });
-      return;
-    }
-    setIsBackingUp(true);
-    try {
-      let doc: jsPDF;
-      let filename: string;
-      if (classId === "all") {
-        doc = generateAllClassesPDF();
-        filename = `Presensi_Semua_Kelas_${MONTHS[monthNum]}_${yearNum}.pdf`;
-      } else {
-        doc = generateAttendancePDF();
-        const cls = (classes as any[]).find((c: any) => c.id === classId);
-        const className = cls?.name?.replace(/\s+/g, "_") || classId;
-        filename = `Presensi_${className}_${MONTHS[monthNum]}_${yearNum}.pdf`;
-      }
-      const pdfBase64 = doc.output("datauristring").split(",")[1];
-      await apiRequest("POST", "/api/backup/drive", { pdfBase64, filename });
-      toast({ title: "✅ Backup berhasil ke Google Drive!", description: filename });
-    } catch (e: any) {
-      toast({ title: "Backup gagal", description: e.message || "Pastikan Google Drive sudah terhubung di Konfigurasi", variant: "destructive" });
-    } finally {
-      setIsBackingUp(false);
-    }
-  };
-
   const wrapWordDocHtml = (body: string) => `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -864,17 +834,6 @@ const RekapBulanan = () => {
                 <DropdownMenuItem onClick={handleExportExcel}>📊 Export Excel</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportPDF}>📕 Export PDF</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportWord}>📝 Export Word</DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem
-                    data-testid="button-backup-drive"
-                    onClick={handleBackupToDrive}
-                    disabled={isBackingUp}
-                    className="text-blue-600 font-semibold"
-                  >
-                    <HardDriveUpload className="h-4 w-4 mr-2" />
-                    {isBackingUp ? "Mengupload..." : "☁️ Backup ke Google Drive"}
-                  </DropdownMenuItem>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
